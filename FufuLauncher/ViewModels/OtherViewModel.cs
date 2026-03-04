@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Security.Principal;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FufuLauncher.Activation;
@@ -69,6 +70,8 @@ namespace FufuLauncher.ViewModels
             LoadSettings();
         }
         
+        
+        
         private void OpenBrowserWindow()
         {
             try
@@ -114,6 +117,36 @@ namespace FufuLauncher.ViewModels
             else
             {
                 StatusMessage = string.Empty;
+            }
+        }
+        
+        private bool IsAdministrator()
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        
+        private async Task ShowAdminRequiredDialogAsync()
+        {
+            try
+            {
+                await _dispatcherQueue.EnqueueAsync(async () =>
+                {
+                    var dialog = new ContentDialog
+                    {
+                        Title = "需要管理员权限",
+                        Content = "使用全局连点器功能需要管理员权限才能正常拦截和发送按键\n\n请关闭本程序，右键选择“以管理员身份运行”后再次尝试",
+                        CloseButtonText = "我知道了",
+                        XamlRoot = App.MainWindow.Content.XamlRoot
+                    };
+                    await dialog.ShowAsync();
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"显示管理员提示对话框失败: {ex.Message}");
+                StatusMessage = "错误: 缺少管理员权限，请重启程序";
             }
         }
         private async Task ApplyProgramPathAsync()
@@ -309,6 +342,16 @@ namespace FufuLauncher.ViewModels
         }
         partial void OnIsAutoClickerEnabledChanged(bool value)
         {
+            if (value && !IsAdministrator())
+            {
+                Debug.WriteLine("[OtherViewModel] 尝试启用连点器，但没有管理员权限被拦截");
+                
+                _dispatcherQueue.TryEnqueue(() => IsAutoClickerEnabled = false);
+                
+                _ = ShowAdminRequiredDialogAsync();
+                return;
+            }
+
             _autoClickerService.IsEnabled = value;
             _ = SaveSettingsAsync();
             Debug.WriteLine($"[OtherViewModel] 连点器启用状态切换: {value}");

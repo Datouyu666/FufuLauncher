@@ -33,6 +33,9 @@ namespace FufuLauncher.Services
         private bool _isEnabled;
         private VirtualKey _triggerKey = VirtualKey.F8;
         private VirtualKey _clickKey = VirtualKey.F;
+        
+        // 增加一把锁，防止异步极速触发时造成状态混乱
+        private readonly object _stateLock = new object();
 
         public event EventHandler<bool> IsAutoClickingChanged;
 
@@ -138,58 +141,71 @@ namespace FufuLauncher.Services
 
         private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
+            // 极限优化：只做最轻量级的判断，拒绝任何阻塞操作
             if (nCode >= 0 && _isEnabled)
             {
-                try
+                // 直接从指针偏移量读取结构体数据，避开耗时的 Marshal.PtrToStructure 序列化
+                // 偏移量 0 是 vkCode, 偏移量 8 是 flags
+                int vkCode = Marshal.ReadInt32(lParam);
+                int flags = Marshal.ReadInt32(lParam, 8);
+                
+                bool isInjected = (flags & 0x10) != 0;
+                
+                if (!isInjected)
                 {
-                    KBDLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
-                    
-                    bool isInjected = (hookStruct.flags & 0x10) != 0;
-                    
-                    if (!isInjected)
-                    {
-                        var vk = (VirtualKey)hookStruct.vkCode;
-                        bool down = wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN;
-                        bool up = wParam == WM_KEYUP || wParam == WM_SYSKEYUP;
+                    var vk = (VirtualKey)vkCode;
 
-                        if (vk == _triggerKey)
+                    if (vk == _triggerKey)
+                    {
+                        int wp = wParam.ToInt32();
+                        bool down = wp == WM_KEYDOWN || wp == WM_SYSKEYDOWN;
+                        bool up = wp == WM_KEYUP || wp == WM_SYSKEYUP;
+
+                        if (down && !_isTriggerKeyPressed)
                         {
-                            if (down)
-                            {
-                                if (!_isTriggerKeyPressed)
-                                {
-                                    _isTriggerKeyPressed = true;
-                                    StartClicking();
-                                }
-                            }
-                            else if (up)
-                            {
-                                _isTriggerKeyPressed = false;
-                                StopClicking();
-                            }
+                            _isTriggerKeyPressed = true;
+                            // 立即把任务扔到线程池，钩子函数瞬间返回！
+                            Task.Run(() => StartClicking());
+                        }
+                        else if (up)
+                        {
+                            _isTriggerKeyPressed = false;
+                            // 立即把任务扔到线程池，钩子函数瞬间返回！
+                            Task.Run(() => StopClicking());
                         }
                     }
                 }
-                catch { }
             }
+            // 极速放行
             return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
         }
 
         private void StartClicking()
         {
-            if (IsAutoClicking) return;
-            IsAutoClicking = true;
+            lock (_stateLock)
+            {
+                if (IsAutoClicking) return;
+                IsAutoClicking = true;
+                _clickCts = new CancellationTokenSource();
+                
+                // Task.Run 更现代、开销更小
+                _ = Task.Run(() => ClickLoop(_clickCts.Token), _clickCts.Token);
+            }
+            // 在锁外触发事件，防止事件订阅者的耗时操作死锁
             IsAutoClickingChanged?.Invoke(this, true);
-            _clickCts = new CancellationTokenSource();
-            
-            Task.Factory.StartNew(async () => { await ClickLoop(_clickCts.Token); }, _clickCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         private void StopClicking()
         {
-            if (!IsAutoClicking) return;
-            _clickCts?.Cancel();
-            IsAutoClicking = false;
+            lock (_stateLock)
+            {
+                if (!IsAutoClicking) return;
+                _clickCts?.Cancel();
+                _clickCts?.Dispose(); // 养成良好习惯，释放 CancellationTokenSource
+                _clickCts = null;
+                IsAutoClicking = false;
+            }
+            // 在锁外触发事件
             IsAutoClickingChanged?.Invoke(this, false);
             Debug.WriteLine("[连点器] 停止");
         }
@@ -204,7 +220,6 @@ namespace FufuLauncher.Services
                 while (!token.IsCancellationRequested) 
                 { 
                     SendNativeInput(scanCode);
-                    
                     await Task.Delay(50, token); 
                 } 
             } 
