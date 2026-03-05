@@ -43,7 +43,7 @@ namespace FufuLauncher.Services.Background
             {
                 Timeout = TimeSpan.FromSeconds(60)
             };
-            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36");
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("\nMozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36");
         }
 
         private readonly string _cacheFolderPath;
@@ -70,27 +70,49 @@ namespace FufuLauncher.Services.Background
                 Debug.WriteLine($"BackgroundRenderer: 创建缓存目录失败 - {ex.Message}");
             }
         }
+        
+        private BackgroundRenderResult GetFallbackBackground()
+        {
+            try
+            {
+                Debug.WriteLine("BackgroundRenderer: 正在加载回退背景 Assets/bg.png");
+                var bgPath = Path.Combine(AppContext.BaseDirectory, "Assets", "bg.png");
+                var bitmap = new BitmapImage(new Uri(bgPath));
+        
+                return new BackgroundRenderResult
+                {
+                    ImageSource = bitmap,
+                    IsVideo = false
+                };
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"BackgroundRenderer: 回退背景失败 - {ex.Message}");
+                return null;
+            }
+        }
 
         public async Task<BackgroundRenderResult> GetBackgroundAsync(ServerType server, bool preferVideo)
         {
-            var backgroundService = App.GetService<IHoyoverseBackgroundService>();
-            var backgroundInfo = await backgroundService.GetBackgroundUrlAsync(server, preferVideo);
-
-            Debug.WriteLine($"BackgroundRenderer: 获取到 URL = {backgroundInfo?.Url ?? "null"}, IsVideo = {backgroundInfo?.IsVideo ?? false}");
-
-            if (backgroundInfo == null || string.IsNullOrEmpty(backgroundInfo.Url))
-            {
-                return null;
-            }
-
-            if (backgroundInfo.Url == _currentBackgroundUrl && _cachedBackground != null)
-            {
-                Debug.WriteLine("BackgroundRenderer: 使用缓存媒体");
-                return _cachedBackground;
-            }
-
             try
             {
+                var backgroundService = App.GetService<IHoyoverseBackgroundService>();
+                var backgroundInfo = await backgroundService.GetBackgroundUrlAsync(server, preferVideo);
+
+                Debug.WriteLine($"BackgroundRenderer: 获取到 URL = {backgroundInfo?.Url ?? "null"}, IsVideo = {backgroundInfo?.IsVideo ?? false}");
+                
+                if (backgroundInfo == null || string.IsNullOrEmpty(backgroundInfo.Url))
+                {
+                    Debug.WriteLine("BackgroundRenderer: 无法获取在线背景，触发回退机制");
+                    return GetFallbackBackground();
+                }
+
+                if (backgroundInfo.Url == _currentBackgroundUrl && _cachedBackground != null)
+                {
+                    Debug.WriteLine("BackgroundRenderer: 使用缓存媒体");
+                    return _cachedBackground;
+                }
+
                 if (backgroundInfo.IsVideo)
                 {
                     Debug.WriteLine($"BackgroundRenderer: 处理视频背景");
@@ -117,8 +139,8 @@ namespace FufuLauncher.Services.Background
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"BackgroundRenderer: 加载失败 - {ex.Message}");
-                return null;
+                Debug.WriteLine($"BackgroundRenderer: 加载或处理背景失败 - {ex.Message}");
+                return GetFallbackBackground();
             }
         }
 

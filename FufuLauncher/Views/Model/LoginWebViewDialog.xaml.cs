@@ -51,7 +51,7 @@ public sealed partial class LoginWebViewDialog : Window
                 var dialog = new ContentDialog
                 {
                     Title = "发现已保存的配置",
-                    Content = "检测到本地数据库存在之前保存的账号配置，是否直接应用并完成登录？",
+                    Content = "本地数据库存在之前保存的账号配置，是否直接应用并完成登录？",
                     PrimaryButtonText = "是，直接应用",
                     CloseButtonText = "否，重新登录",
                     XamlRoot = LoginWebView.XamlRoot
