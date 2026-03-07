@@ -1233,7 +1233,7 @@ private Task ApplyGlobalBackgroundAsync(BackgroundRenderResult? result)
         }
     }
 
-    private Grid CreateNotificationCard(NotificationMessage message)
+private Grid CreateNotificationCard(NotificationMessage message)
 {
     var card = new Grid
     {
@@ -1250,9 +1250,11 @@ private Task ApplyGlobalBackgroundAsync(BackgroundRenderResult? result)
     card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
     card.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
     
+    var fallbackFontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol");
+
     var icon = new FontIcon 
     { 
-        FontFamily = new FontFamily("Segoe Fluent Icons"), 
+        FontFamily = fallbackFontFamily, 
         FontSize = 18, 
         Glyph = GetNotificationIcon(message.Type), 
         VerticalAlignment = VerticalAlignment.Top, 
@@ -1288,7 +1290,7 @@ private Task ApplyGlobalBackgroundAsync(BackgroundRenderResult? result)
     
     var closeButton = new Button 
     { 
-        Content = new FontIcon { Glyph = "\uE711", FontSize = 12 }, 
+        Content = new FontIcon { FontFamily = fallbackFontFamily, Glyph = "\uE711", FontSize = 12 }, 
         Background = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)),
         BorderThickness = new Thickness(0),
         CornerRadius = new CornerRadius(4),
@@ -1300,7 +1302,8 @@ private Task ApplyGlobalBackgroundAsync(BackgroundRenderResult? result)
         Foreground = new SolidColorBrush(Colors.White) 
     };
     Grid.SetColumn(closeButton, 2);
-    closeButton.Click += (_, _) => { try { NotificationPanel.Children.Remove(card); }
+    closeButton.Click += (_, _) => { 
+        try { NotificationPanel.Children.Remove(card); }
         catch
         {
             // ignored
