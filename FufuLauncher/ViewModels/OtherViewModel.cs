@@ -342,12 +342,38 @@ namespace FufuLauncher.ViewModels
             }
         }
         
+        private async Task ShowFeatureDisabledDialogAsync()
+        {
+            try
+            {
+                await _dispatcherQueue.EnqueueAsync(async () =>
+                {
+                    var dialog = new ContentDialog
+                    {
+                        Title = "警告",
+                        Content = "连点器功能当前已被禁用，请等待后续修复",
+                        CloseButtonText = "确定",
+                        XamlRoot = App.MainWindow.Content.XamlRoot
+                    };
+                    await dialog.ShowAsync();
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"显示功能禁用对话框失败: {ex.Message}");
+                StatusMessage = "提示: 连点器功能已被禁用，等待修复";
+            }
+        }
+        
         partial void OnIsAutoClickerEnabledChanged(bool value)
         {
             if (value)
             {
-                Debug.WriteLine("[OtherViewModel] 连点器已被强制禁用，拦截开启请求");
+                Debug.WriteLine("[OtherViewModel] 拦截开启请求");
                 _dispatcherQueue.TryEnqueue(() => IsAutoClickerEnabled = false);
+                
+                _ = ShowFeatureDisabledDialogAsync();
+                
                 return;
             }
 
