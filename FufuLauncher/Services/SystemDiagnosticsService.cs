@@ -51,13 +51,48 @@ public class SystemDiagnosticsService
 
     public async Task<SystemDiagnosticsInfo> GetSystemInfoAsync()
     {
+        var info = new SystemDiagnosticsInfo();
+        long totalMemoryGB = -1;
+        long freeDiskGB = -1;
+        bool isNetworkAvailable = false;
+        string regionCode = "未知";
+
+        try
+        {
+            isNetworkAvailable = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
+            info.NetworkStatus = isNetworkAvailable ? "已连接" : "未连接";
+
+            if (isNetworkAvailable)
+            {
+                try
+                {
+                    using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+                    regionCode = await client.GetStringAsync("http://ip-api.com/line/?fields=countryCode");
+                    regionCode = regionCode.Trim();
+                    info.NetworkRegion = regionCode == "CN" ? "国内" : "海外";
+                }
+                catch
+                {
+                    regionCode = System.Globalization.RegionInfo.CurrentRegion.TwoLetterISORegionName;
+                    info.NetworkRegion = regionCode == "CN" ? "国内 (按系统设置)" : "海外 (按系统设置)";
+                }
+            }
+            else
+            {
+                info.NetworkRegion = "无网络";
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Diagnostics] Network Error: {ex.Message}");
+        }
+
         return await Task.Run(() =>
         {
-            var info = new SystemDiagnosticsInfo();
-
             try
             {
-                info.OsVersion = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+                info.OsVersion = RuntimeInformation.OSDescription;
+
                 using (var searcher = new ManagementObjectSearcher("select Name from Win32_Processor"))
                 {
                     foreach (var item in searcher.Get())
@@ -77,7 +112,8 @@ public class SystemDiagnosticsService
                             totalCapacity += capacity;
                         }
                     }
-                    info.TotalMemory = $"{totalCapacity / (1024 * 1024 * 1024)} GB";
+                    totalMemoryGB = totalCapacity / (1024 * 1024 * 1024);
+                    info.TotalMemory = $"{totalMemoryGB} GB";
                 }
 
                 using (var searcher = new ManagementObjectSearcher("select Name from Win32_VideoController"))
@@ -89,7 +125,41 @@ public class SystemDiagnosticsService
                     }
                 }
 
-                DEVMODE dm = new DEVMODE();
+                try
+                {
+                    string systemDrive = Path.GetPathRoot(Environment.SystemDirectory);
+                    if (!string.IsNullOrEmpty(systemDrive))
+                    {
+                        DriveInfo drive = new(systemDrive);
+                        freeDiskGB = drive.AvailableFreeSpace / (1024 * 1024 * 1024);
+                        info.DiskSpace = $"{freeDiskGB} GB";
+                    }
+                }
+                catch
+                {
+                    info.DiskSpace = "读取失败";
+                }
+
+                try
+                {
+                    using (var searcher = new ManagementObjectSearcher("select State from Win32_Service where Name='WinDefend'"))
+                    {
+                        bool found = false;
+                        foreach (var item in searcher.Get())
+                        {
+                            info.SecurityCenterStatus = item["State"]?.ToString() == "Running" ? "已开启" : "未开启";
+                            found = true;
+                            break;
+                        }
+                        if (!found) info.SecurityCenterStatus = "未安装或已卸载";
+                    }
+                }
+                catch
+                {
+                    info.SecurityCenterStatus = "读取失败";
+                }
+
+                DEVMODE dm = new();
                 dm.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
 
                 if (EnumDisplaySettings(null, -1, ref dm))
@@ -110,21 +180,45 @@ public class SystemDiagnosticsService
                 }
                 info.MaxRefreshRate = maxHz > 0 ? $"{maxHz} Hz" : "无法检测";
 
-                info.Suggestion = GenerateSuggestion(info);
+                info.Suggestion = GenerateSuggestion(info, totalMemoryGB, freeDiskGB, isNetworkAvailable, regionCode);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Diagnostics] Error: {ex.Message}");
-                info.Suggestion = "诊断过程中发生错误，部分信息可能不准确。";
+                info.Suggestion = "诊断过程中发生错误，部分信息可能不准确";
             }
 
             return info;
         });
     }
 
-    private string GenerateSuggestion(SystemDiagnosticsInfo info)
+    private string GenerateSuggestion(SystemDiagnosticsInfo info, long totalMemoryGB, long freeDiskGB, bool isNetworkAvailable, string regionCode)
     {
         var suggestions = new List<string>();
+
+        if (!isNetworkAvailable)
+        {
+            suggestions.Add("网络未连接，请检查系统网络设置");
+        }
+        else if (regionCode == "CN")
+        {
+            suggestions.Add("当前处于国内网络环境，访问服务器可能存在缓慢情况");
+        }
+        
+        if (info.SecurityCenterStatus == "已开启")
+        {
+            suggestions.Add("Windows 安全中心已开启，这可能会导致插件注入失败，建议关闭 Windows 安全中心");
+        }
+
+        if (totalMemoryGB >= 0 && totalMemoryGB < 12)
+        {
+            suggestions.Add($"当前物理内存为 {totalMemoryGB}GB，不符合最低 12GB 的要求");
+        }
+
+        if (freeDiskGB >= 0 && freeDiskGB < 1)
+        {
+            suggestions.Add($"系统盘剩余空间为 {freeDiskGB}GB，不符合最低 1GB 的要求");
+        }
 
         if (int.TryParse(info.CurrentRefreshRate.Replace(" Hz", ""), out int currentHz) &&
             int.TryParse(info.MaxRefreshRate.Replace(" Hz", ""), out int maxHz))
@@ -133,13 +227,9 @@ public class SystemDiagnosticsService
             {
                 suggestions.Add($"您的显示器支持 {maxHz}Hz，但当前仅运行在 {currentHz}Hz");
             }
-            else if (currentHz >= 120)
-            {
-                suggestions.Add("正常");
-            }
         }
 
-        if (suggestions.Count == 0) return "正常";
+        if (suggestions.Count == 0) return "正常，系统与网络环境符合运行要求";
 
         return string.Join("\n", suggestions);
     }

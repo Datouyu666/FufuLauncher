@@ -19,4 +19,12 @@ public partial class SystemDiagnosticsInfo : ObservableObject
     [ObservableProperty] private string _maxRefreshRate = "未知";
 
     [ObservableProperty] private string _suggestion = "未知";
+
+    [ObservableProperty] private string _networkStatus = "未知";
+
+    [ObservableProperty] private string _networkRegion = "未知";
+
+    [ObservableProperty] private string _diskSpace = "未知";
+
+    [ObservableProperty] private string _securityCenterStatus = "未知";
 }

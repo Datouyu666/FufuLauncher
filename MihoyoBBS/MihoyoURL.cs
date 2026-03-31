@@ -1137,14 +1137,14 @@ namespace MihoyoBBS
                             }
                             break;
                         case "Expired":
-                            Console.WriteLine("二维码已过期。");
+                            Console.WriteLine("二维码已过期");
                             return (null, null);
                         default:
                             break;
                     }
                     if (checkCount > 150)
                     {
-                        Console.WriteLine("等待超时。");
+                        Console.WriteLine("等待超时");
                         return (null, null);
                     }
                 }
@@ -2023,7 +2023,7 @@ namespace MihoyoBBS
             {
                 Logger.LogError($"加载配置文件失败: {ex.Message}");
                 Console.WriteLine($"加载配置文件失败: {ex.Message}");
-                Console.WriteLine($"建议：请用记事本打开config.json文件，检查值是否有换行或特殊字符。");
+                Console.WriteLine($"建议：请用记事本打开config.json文件，检查值是否有换行或特殊字符");
                 return null;
             }
         }

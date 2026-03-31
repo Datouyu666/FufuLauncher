@@ -81,7 +81,7 @@ namespace FufuLauncher.Views
             catch (Exception ex)
             {
                 Debug.WriteLine("WebView2 初始化失败: " + ex.Message);
-                ViewModel.StatusMessage = "组件初始化失败，请检查 Edge WebView2 Runtime。";
+                ViewModel.StatusMessage = "组件初始化失败，请检查 Edge WebView2 Runtime";
                 ViewModel.IsLoading = false;
             }
         }

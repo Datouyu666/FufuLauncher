@@ -31,7 +31,7 @@ public sealed partial class LoginQrWindow : Window
     private ContentDialog _statusDialog;
     private bool _isDialogOpen;
 
-    public bool IsLoginSuccessful { get; private set; } = false;
+    public bool IsLoginSuccessful { get; private set; }
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {

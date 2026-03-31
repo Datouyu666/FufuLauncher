@@ -77,6 +77,13 @@ public sealed partial class PluginPage : Page
         }
     }
     
+    private void OnOpenDiagnosticsClick(object sender, RoutedEventArgs e)
+    {
+        // 创建并显示诊断窗口实例
+        var diagnosticsWindow = new FufuLauncher.Views.DiagnosticsWindow();
+        diagnosticsWindow.Activate();
+    }
+    
     private async Task ShowDuplicateDialog(string message)
     {
         if (XamlRoot == null) return;

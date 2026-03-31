@@ -231,21 +231,33 @@
                    Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                    Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
         
-        <StackPanel Grid.Row="3" 
-                    Orientation="Horizontal" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Bottom"
-                    Spacing="8" 
-                    Margin="0,12,0,0">
-            
-            <FontIcon Glyph="&#xE7BA;" FontFamily="Segoe MDL2 Assets" 
-                      Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                      FontSize="14"/>
-            
-            <TextBlock Text="请自行辨别插件安全性，对于因使用插件造成的任何损失，开发者概不负责。" 
-                       Style="{StaticResource CaptionTextBlockStyle}"
-                       Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
-                       VerticalAlignment="Center"/>
-        </StackPanel>
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center" 
+                        VerticalAlignment="Bottom"
+                        Spacing="8">
+                <FontIcon Glyph="&#xE7BA;"
+                          FontFamily="Segoe MDL2 Assets" 
+                          Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                          FontSize="14"/>
+                <TextBlock Text="请自行辨别插件安全性，对于因使用插件造成的任何损失，开发者概不负责。" 
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Right" 
+                        VerticalAlignment="Bottom" 
+                        Spacing="8">
+                <TextBlock Text="如果遇到问题，请先点击诊断电脑" 
+                           VerticalAlignment="Center" 
+                           Style="{StaticResource CaptionTextBlockStyle}" 
+                           Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"/>
+                <Button Content="诊断电脑" 
+                        Click="OnOpenDiagnosticsClick"
+                        VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Page>
