@@ -11,14 +11,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2e6bf6ba-f1a7-4d7b-8b76-8b03b5df7f33" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/FufuLauncher/Services/SophonManifestProto.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/FufuLauncher/Services/SophonManifestProto.proto" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/FufuLauncher/Views/AdvancedServerSwitchPage.xaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/FufuLauncher/Views/AdvancedServerSwitchPage.xaml.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.FufuLauncher/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.FufuLauncher/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/FufuLauncher.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/FufuLauncher.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Main/BlankPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Main/BlankPage.xaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Main/BlankPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Main/BlankPage.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fufulauncher.nsi" beforeDir="false" afterPath="$PROJECT_DIR$/fufulauncher.nsi" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -251,7 +246,7 @@
       <workItem from="1775090698445" duration="595000" />
       <workItem from="1775142444723" duration="23925000" />
       <workItem from="1775179962801" duration="3890000" />
-      <workItem from="1775213990268" duration="8148000" />
+      <workItem from="1775213990268" duration="9102000" />
     </task>
     <task id="LOCAL-00001" summary="修复部分功能">
       <option name="closed" value="true" />
@@ -549,7 +544,15 @@
       <option name="project" value="LOCAL" />
       <updated>1775183042406</updated>
     </task>
-    <option name="localTasksCounter" value="38" />
+    <task id="LOCAL-00038" summary="增加国际服切换">
+      <option name="closed" value="true" />
+      <created>1775224888372</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1775224888372</updated>
+    </task>
+    <option name="localTasksCounter" value="39" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -570,7 +573,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="更新插件获取" />
     <MESSAGE value="修复部分问题" />
     <MESSAGE value="修改游戏文件的选择方式" />
     <MESSAGE value="今日的提交解决了issue #104" />
@@ -595,7 +597,8 @@
     <MESSAGE value="更新1.1.0.0" />
     <MESSAGE value="增加和修复了一些功能" />
     <MESSAGE value="增加功能" />
-    <option name="LAST_COMMIT_MESSAGE" value="增加功能" />
+    <MESSAGE value="增加国际服切换" />
+    <option name="LAST_COMMIT_MESSAGE" value="增加国际服切换" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

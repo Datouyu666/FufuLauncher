@@ -443,22 +443,33 @@ private async void CreateShortcut_Click(object sender, RoutedEventArgs e)
             return;
         }
     }
+
+    bool isGlobalExe = File.Exists(Path.Combine(gameDir, "GenshinImpact.exe"));
     
     var stackPanel = new StackPanel { Spacing = 10 };
-    stackPanel.Children.Add(new TextBlock { Text = "请选择你要切换到的服务器：", TextWrapping = TextWrapping.Wrap });
-
+    
     var dialog = new ContentDialog
     {
         Title = "切换服务器",
-        PrimaryButtonText = "切换到 Bilibili 服",
-        SecondaryButtonText = "切换到 官方服务器",
         CloseButtonText = "取消",
         XamlRoot = XamlRoot
     };
 
+    if (isGlobalExe)
+    {
+        stackPanel.Children.Add(new TextBlock { Text = "当前为国际服客户端，不允许切换到B服，请通过服务器转换来切换到中国服务器！", TextWrapping = TextWrapping.Wrap });
+        dialog.PrimaryButtonText = "切换到 官方服务器";
+    }
+    else
+    {
+        stackPanel.Children.Add(new TextBlock { Text = "请选择你要切换到的服务器：", TextWrapping = TextWrapping.Wrap });
+        dialog.PrimaryButtonText = "切换到B服";
+        dialog.SecondaryButtonText = "切换到官方服务器";
+    }
+
     var advancedBtn = new Button 
     { 
-        Content = "国际服/国服转换", 
+        Content = "国际服和国服互相转换", 
         HorizontalAlignment = HorizontalAlignment.Stretch 
     };
     advancedBtn.Click += (s, args) => 
@@ -471,13 +482,23 @@ private async void CreateShortcut_Click(object sender, RoutedEventArgs e)
 
     var result = await dialog.ShowAsync();
 
-    if (result == ContentDialogResult.Primary)
+    if (isGlobalExe)
     {
-        await PerformServerSwitch(gameDir, configPath, true);
+        if (result == ContentDialogResult.Primary)
+        {
+            await PerformServerSwitch(gameDir, configPath, false);
+        }
     }
-    else if (result == ContentDialogResult.Secondary)
+    else
     {
-        await PerformServerSwitch(gameDir, configPath, false);
+        if (result == ContentDialogResult.Primary)
+        {
+            await PerformServerSwitch(gameDir, configPath, true);
+        }
+        else if (result == ContentDialogResult.Secondary)
+        {
+            await PerformServerSwitch(gameDir, configPath, false);
+        }
     }
 }
         
@@ -494,7 +515,7 @@ private async void CreateShortcut_Click(object sender, RoutedEventArgs e)
             newWindow.SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
             newWindow.ExtendsContentIntoTitleBar = true;
             
-            newWindow.Title = "完整端跨服转换";
+            newWindow.Title = "转换";
 
             var hWnd = WindowNative.GetWindowHandle(newWindow);
             var winId = Win32Interop.GetWindowIdFromWindow(hWnd);
@@ -584,13 +605,26 @@ private async void CreateShortcut_Click(object sender, RoutedEventArgs e)
 
         private async Task LoadGameConfig(string gameExePath)
         {
-            if (string.IsNullOrEmpty(gameExePath) || !File.Exists(gameExePath)) return;
+            if (string.IsNullOrEmpty(gameExePath)) return;
 
-            var gameDir = Path.GetDirectoryName(gameExePath);
+            var gameDir = gameExePath;
+            if (File.Exists(gameExePath))
+            {
+                gameDir = Path.GetDirectoryName(gameExePath);
+            }
+    
+            if (!Directory.Exists(gameDir)) return;
+
             var configPath = Path.Combine(gameDir, "config.ini");
             var serverType = "未知服务器";
 
-            if (File.Exists(configPath))
+            bool isGlobalExe = File.Exists(Path.Combine(gameDir, "GenshinImpact.exe"));
+
+            if (isGlobalExe)
+            {
+                serverType = "国际服务器";
+            }
+            else if (File.Exists(configPath))
             {
                 try
                 {
@@ -881,72 +915,81 @@ private async Task ShowAutoPathDialog(string foundPath)
             }
         }
 
-        private async Task LoadGameInfoAsync(string gamePath)
+private async Task LoadGameInfoAsync(string gamePath)
+{
+    gamePath = gamePath?.Trim('"').Trim();
+
+    if (string.IsNullOrEmpty(gamePath) || !Directory.Exists(gamePath))
+    {
+        ShowEmptyState();
+        return;
+    }
+
+    LoadingRing.IsActive = true;
+
+    try
+    {
+        var config = new GameConfigData { GamePath = gamePath };
+
+        _currentConfig = config;
+
+        ShowInfo();
+
+        await Task.Run(async () =>
         {
-            gamePath = gamePath?.Trim('"').Trim();
-
-            if (string.IsNullOrEmpty(gamePath) || !Directory.Exists(gamePath))
+            var configPath = Path.Combine(gamePath, "config.ini");
+            if (!File.Exists(configPath))
             {
-                ShowEmptyState();
-                return;
+                configPath = Directory.GetFiles(gamePath, "config.ini", SearchOption.AllDirectories)
+                    .FirstOrDefault();
             }
 
-            LoadingRing.IsActive = true;
+            bool isGlobalExe = File.Exists(Path.Combine(gamePath, "GenshinImpact.exe"));
 
-
-            try
+            if (configPath != null && File.Exists(configPath))
             {
-                var config = new GameConfigData { GamePath = gamePath };
-
-                _currentConfig = config;
-
-                ShowInfo();
-
-                await Task.Run(async () =>
+                var content = await File.ReadAllTextAsync(configPath);
+                var versionLine = content.Split('\n')
+                    .FirstOrDefault(line => line.StartsWith("game_version=", StringComparison.OrdinalIgnoreCase));
+                if (versionLine != null)
                 {
-                    var configPath = Path.Combine(gamePath, "config.ini");
-                    if (!File.Exists(configPath))
-                    {
-                        configPath = Directory.GetFiles(gamePath, "config.ini", SearchOption.AllDirectories)
-                            .FirstOrDefault();
-                    }
-
-                    if (configPath != null && File.Exists(configPath))
-                    {
-                        var content = await File.ReadAllTextAsync(configPath);
-                        var versionLine = content.Split('\n')
-                            .FirstOrDefault(line => line.StartsWith("game_version=", StringComparison.OrdinalIgnoreCase));
-                        if (versionLine != null)
-                        {
-                            var parts = versionLine.Split('=', 2);
-                            if (parts.Length > 1)
-                                config.Version = parts[1].Trim();
-                        }
-                        config.ServerType = DetectServerType(content);
-                    }
-                    else
-                    {
-                        config.Version = "未找到版本信息";
-                        config.ServerType = "未知";
-                    }
-
-                    config.DirectorySize = CalculateDirectorySize(gamePath);
-
-                    DispatcherQueue.TryEnqueue(() => ShowInfo());
-                });
-
-                _ = GetGameBranchesInfoAsync();
+                    var parts = versionLine.Split('=', 2);
+                    if (parts.Length > 1)
+                        config.Version = parts[1].Trim();
+                }
+                
+                if (isGlobalExe)
+                {
+                    config.ServerType = "国际服务器";
+                }
+                else
+                {
+                    config.ServerType = DetectServerType(content);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Debug.WriteLine($"[LoadGameInfoAsync] 异常: {ex.Message}");
-                ShowEmptyState();
+                config.Version = "未找到版本信息";
+                config.ServerType = isGlobalExe ? "国际服务器" : "未知";
             }
-            finally
-            {
-                LoadingRing.IsActive = false;
-            }
-        }
+
+            config.DirectorySize = CalculateDirectorySize(gamePath);
+
+            DispatcherQueue.TryEnqueue(() => ShowInfo());
+        });
+
+        _ = GetGameBranchesInfoAsync();
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine($"[LoadGameInfoAsync] 异常: {ex.Message}");
+        ShowEmptyState();
+    }
+    finally
+    {
+        LoadingRing.IsActive = false;
+    }
+}
 
         private async Task GetGameBranchesInfoAsync()
         {
