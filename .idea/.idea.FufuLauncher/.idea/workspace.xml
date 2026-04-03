@@ -12,11 +12,9 @@
   <component name="ChangeListManager">
     <list default="true" id="2e6bf6ba-f1a7-4d7b-8b76-8b03b5df7f33" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.FufuLauncher/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.FufuLauncher/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/MainWindow.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/MainWindow.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Services/UpdateService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Services/UpdateService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Update.json" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Update.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Main/SettingsPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Main/SettingsPage.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Model/AboutPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Model/AboutPage.xaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/ViewModels/MainViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/ViewModels/MainViewModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Main/PluginSettingsPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Main/PluginSettingsPage.xaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Main/PluginSettingsPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Main/PluginSettingsPage.xaml.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,7 +70,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "XThreadsFramesViewSplitterKey": "0.49362245",
+    "XThreadsFramesViewSplitterKey": "0.58035713",
     "git-widget-placeholder": "master",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -247,7 +245,7 @@
       <workItem from="1774959021582" duration="4420000" />
       <workItem from="1774969427623" duration="11689000" />
       <workItem from="1775090698445" duration="595000" />
-      <workItem from="1775142444723" duration="18534000" />
+      <workItem from="1775142444723" duration="23796000" />
     </task>
     <task id="LOCAL-00001" summary="修复部分功能">
       <option name="closed" value="true" />
@@ -521,7 +519,15 @@
       <option name="project" value="LOCAL" />
       <updated>1775152013819</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="更新1.1.0.0">
+      <option name="closed" value="true" />
+      <created>1775168315996</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1775168315996</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -542,7 +548,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="修复插件下载安装问题" />
     <MESSAGE value="不再弹窗" />
     <MESSAGE value="减少体积" />
     <MESSAGE value="更新插件获取" />
@@ -567,7 +572,8 @@
     <MESSAGE value="修复部分功能" />
     <MESSAGE value="修改字体文件" />
     <MESSAGE value="增加功能，修复部分问题" />
-    <option name="LAST_COMMIT_MESSAGE" value="增加功能，修复部分问题" />
+    <MESSAGE value="更新1.1.0.0" />
+    <option name="LAST_COMMIT_MESSAGE" value="更新1.1.0.0" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

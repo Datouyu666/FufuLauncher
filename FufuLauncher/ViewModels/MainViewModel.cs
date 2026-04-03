@@ -534,16 +534,20 @@ namespace FufuLauncher.ViewModels
         {
             bool isSigned = !string.IsNullOrEmpty(statusText) && 
                             (statusText.Contains("成功") || statusText.Contains("已"));
-            
+    
             CheckinStateGlyph = "\uE73E"; 
 
             if (isSigned)
             {
                 CheckinStateBrush = new SolidColorBrush(Microsoft.UI.Colors.LightGreen);
+                IsCheckinButtonEnabled = false;
+                CheckinButtonText = "已签到";
             }
             else
             {
                 CheckinStateBrush = new SolidColorBrush(Microsoft.UI.Colors.White) { Opacity = 0.3 };
+                IsCheckinButtonEnabled = true;
+                CheckinButtonText = "一键签到";
             }
         }
         
@@ -589,11 +593,10 @@ namespace FufuLauncher.ViewModels
                 Debug.WriteLine($"执行失败: {ex.Message}");
                 CheckinStatusText = "执行失败";
                 CheckinSummary = ex.Message;
+                UpdateCheckinIconState("Fail"); 
             }
             finally
             {
-                IsCheckinButtonEnabled = true;
-                CheckinButtonText = "一键签到";
                 await Task.Delay(500);
                 await LoadCheckinStatusAsync();
             }
