@@ -18,6 +18,8 @@ namespace FufuLauncher.ViewModels
         private readonly ILocalSettingsService _localSettingsService;
         private readonly IAutoClickerService _autoClickerService;
         private readonly Microsoft.UI.Dispatching.DispatcherQueue _dispatcherQueue;
+        private bool _isInitializing;
+        private bool _isReverting;
         public IRelayCommand OpenBrowserCommand { get; }
 
         [ObservableProperty] private bool _isAdditionalProgramEnabled;
@@ -204,10 +206,11 @@ namespace FufuLauncher.ViewModels
                 var clickKey = _localSettingsService.ReadSettingAsync("AutoClickerClickKey").Result;
 
                 Debug.WriteLine($"[OtherViewModel] 原始配置 - Enabled: {autoClickerEnabled}, TriggerKey: {triggerKey}, ClickKey: {clickKey}");
-
-                IsAutoClickerEnabled = false;
-                _autoClickerService.IsEnabled = false;
-                _ = _localSettingsService.SaveSettingAsync("AutoClickerEnabled", false);
+                
+                _isInitializing = true;
+                IsAutoClickerEnabled = autoClickerEnabled != null && Convert.ToBoolean(autoClickerEnabled);
+                _autoClickerService.IsEnabled = IsAutoClickerEnabled;
+                _isInitializing = false;
 
                 TriggerKey = triggerKey?.ToString()?.Trim('"') ?? "F";
                 ClickKey = clickKey?.ToString()?.Trim('"') ?? "F";
@@ -342,54 +345,83 @@ namespace FufuLauncher.ViewModels
             }
         }
         
-        private async Task ShowFeatureDisabledDialogAsync()
+        private async Task<bool> ShowLatencyWarningDialogAsync()
         {
+            bool result = false;
             try
             {
                 await _dispatcherQueue.EnqueueAsync(async () =>
                 {
                     var dialog = new ContentDialog
                     {
-                        Title = "警告",
-                        Content = "连点器功能当前已被禁用，请等待后续修复",
-                        CloseButtonText = "确定",
+                        Title = "风险提示",
+                        Content = "开启连点器功能将会安装全局键盘拦截钩子，这可能会导致您的所有按键操作出现轻微延迟\n\n您确定要开启此功能吗？",
+                        PrimaryButtonText = "确认开启",
+                        CloseButtonText = "取消",
+                        DefaultButton = ContentDialogButton.Close,
                         XamlRoot = App.MainWindow.Content.XamlRoot
                     };
-                    await dialog.ShowAsync();
+                    var dialogResult = await dialog.ShowAsync();
+                    result = dialogResult == ContentDialogResult.Primary;
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"显示功能禁用对话框失败: {ex.Message}");
-                StatusMessage = "提示: 连点器功能已被禁用，等待修复";
+                Debug.WriteLine($"显示延迟警告对话框失败: {ex.Message}");
             }
+            return result;
         }
         
         partial void OnIsAutoClickerEnabledChanged(bool value)
         {
+            // 防止在初始化或状态回滚时循环触发
+            if (_isInitializing || _isReverting) return;
+
             if (value)
             {
-                Debug.WriteLine("[OtherViewModel] 拦截开启请求");
-                _dispatcherQueue.TryEnqueue(() => IsAutoClickerEnabled = false);
-                
-                _ = ShowFeatureDisabledDialogAsync();
-                
+                Debug.WriteLine("[OtherViewModel] 拦截开启请求，弹出风险提示");
+                _ = HandleAutoClickerEnableRequestAsync();
+            }
+            else
+            {
+                _autoClickerService.IsEnabled = false;
+                _ = SaveSettingsAsync();
+                Debug.WriteLine($"[OtherViewModel] 连点器启用状态切换: {value}");
+            }
+        }
+
+        private async Task HandleAutoClickerEnableRequestAsync()
+        {
+            bool confirmed = await ShowLatencyWarningDialogAsync();
+
+            if (!confirmed)
+            {
+                Debug.WriteLine("[OtherViewModel] 用户取消开启连点器");
+                _isReverting = true;
+                _dispatcherQueue.TryEnqueue(() =>
+                {
+                    IsAutoClickerEnabled = false;
+                    _isReverting = false;
+                });
                 return;
             }
-
-            if (value && !IsAdministrator())
+            
+            if (!IsAdministrator())
             {
                 Debug.WriteLine("[OtherViewModel] 尝试启用连点器，但没有管理员权限被拦截");
-        
-                _dispatcherQueue.TryEnqueue(() => IsAutoClickerEnabled = false);
-        
+                _isReverting = true;
+                _dispatcherQueue.TryEnqueue(() =>
+                {
+                    IsAutoClickerEnabled = false;
+                    _isReverting = false;
+                });
                 _ = ShowAdminRequiredDialogAsync();
                 return;
             }
-
-            _autoClickerService.IsEnabled = value;
+            
+            _autoClickerService.IsEnabled = true;
             _ = SaveSettingsAsync();
-            Debug.WriteLine($"[OtherViewModel] 连点器启用状态切换: {value}");
+            Debug.WriteLine($"[OtherViewModel] 连点器启用状态切换: True");
         }
 
         public void UpdateKey(string keyType, VirtualKey key)

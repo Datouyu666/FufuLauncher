@@ -43,8 +43,13 @@ namespace FufuLauncher.Services
         {
             get => _isEnabled; set
             {
-                value = false;
-                if (_isEnabled != value) { _isEnabled = value; if (value) Start(); else Stop(); _ = SaveSettingsAsync(); }
+                // value = false;
+
+                if (_isEnabled != value) { 
+                    _isEnabled = value; 
+                    if (value) Start(); else Stop(); 
+                    _ = SaveSettingsAsync(); 
+                }
             }
         }
         public VirtualKey TriggerKey
@@ -87,7 +92,8 @@ namespace FufuLauncher.Services
                 var clickKey = _settingsService.ReadSettingAsync("AutoClickerClickKey").Result;
 
                 if (enabled != null) _isEnabled = Convert.ToBoolean(enabled);
-                _isEnabled = false;
+                
+                // _isEnabled = false; 
 
                 string triggerKeyStr = triggerKey?.ToString()?.Trim('"');
                 string clickKeyStr = clickKey?.ToString()?.Trim('"');
