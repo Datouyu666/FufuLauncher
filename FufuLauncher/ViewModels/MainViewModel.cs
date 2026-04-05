@@ -15,6 +15,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.Media.Playback;
 using Windows.UI;
+using FufuLauncher.Views;
 using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace FufuLauncher.ViewModels
@@ -702,11 +703,13 @@ namespace FufuLauncher.ViewModels
 
             try
             {
-                await Windows.System.Launcher.LaunchFolderPathAsync(screenshotPath);
+                // 实例化并激活新的独立窗口，传入截图目录路径
+                var galleryWindow = new ScreenshotGalleryWindow(screenshotPath);
+                galleryWindow.Activate();
             }
             catch (Exception ex)
             {
-                _notificationService.Show("打开失败", $"无法打开截图文件夹: {ex.Message}", NotificationType.Error, 0);
+                _notificationService.Show("打开失败", $"无法初始化截图窗口: {ex.Message}", NotificationType.Error, 0);
             }
         }
 
