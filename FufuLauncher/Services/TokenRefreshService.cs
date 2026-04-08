@@ -11,6 +11,7 @@ namespace FufuLauncher.Services;
 public class TokenRefreshService
 {
     private const string Salt = "dDIQHbKOdaPaLuvQKVzUzqdeCaxjtaPV";
+    private const string WebSalt = "G1ktdwFL4IyGkHuuWSmz0wUe9Db9scyK";
     private readonly string _deviceId;
     private readonly string _deviceFp;
     private readonly HttpClient _httpClient;
@@ -41,6 +42,15 @@ public class TokenRefreshService
             var config = JsonSerializer.Deserialize<Config>(json);
             
             if (config == null || string.IsNullOrEmpty(config.Account.Cookie)) return;
+            
+            bool isValid = await CheckCookieValidAsync(config.Account.Cookie);
+            if (isValid)
+            {
+                Debug.WriteLine("当前 Cookie 仍然有效且获取到了角色列表，无需刷新");
+                return;
+            }
+
+            Debug.WriteLine("当前 Cookie 已失效或角色列表为空，开始执行 Token 刷新...");
 
             var cookieDict = ParseCookieString(config.Account.Cookie);
             
@@ -95,6 +105,42 @@ public class TokenRefreshService
         {
             Debug.WriteLine($"Token 刷新异常: {ex.Message}");
         }
+    }
+
+    private async Task<bool> CheckCookieValidAsync(string cookie)
+    {
+        try
+        {
+            string url = "https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie?game_biz=hk4e_cn";
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+            request.Headers.TryAddWithoutValidation("Accept", "application/json, text/plain, */*");
+            request.Headers.TryAddWithoutValidation("DS", GenerateWebDS());
+            request.Headers.TryAddWithoutValidation("x-rpc-channel", "miyousheluodi");
+            request.Headers.TryAddWithoutValidation("Origin", "https://act.mihoyo.com");
+            request.Headers.TryAddWithoutValidation("x-rpc-app_version", "2.93.1");
+            request.Headers.TryAddWithoutValidation("x-rpc-client_type", "5");
+            request.Headers.TryAddWithoutValidation("Referer", "https://act.mihoyo.com/");
+            request.Headers.TryAddWithoutValidation("Cookie", cookie);
+            request.Headers.TryAddWithoutValidation("x-rpc-device_id", _deviceId);
+            request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Linux; Android 12; Unspecified Device) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/103.0.5060.129 Mobile Safari/537.36 miHoYoBBS/2.93.1");
+
+            var response = await _httpClient.SendAsync(request);
+            var responseText = await response.Content.ReadAsStringAsync();
+
+            var result = JsonSerializer.Deserialize<ApiResponse<AccountInfoData>>(responseText, _jsonOptions);
+            
+            if (result != null && result.RetCode == 0 && result.Data?.List != null && result.Data.List.Count > 0)
+            {
+                return true; 
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"验证 Cookie 状态时发生异常: {ex.Message}");
+        }
+        
+        return false;
     }
 
     private Dictionary<string, string> ParseCookieString(string cookieString)
@@ -257,6 +303,15 @@ public class TokenRefreshService
         string sign = CreateMD5(signStr);
 
         return $"{t},{r},{sign}";
+    }
+
+    private string GenerateWebDS()
+    {
+        long t = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        string r = GenerateRandomString(6, "abcdefghijklmnopqrstuvwxyz0123456789");
+        string c = CreateMD5($"salt={WebSalt}&t={t}&r={r}");
+        
+        return $"{t},{r},{c}";
     }
 
     private string GenerateRandomString(int length, string chars)

@@ -11,13 +11,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2e6bf6ba-f1a7-4d7b-8b76-8b03b5df7f33" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/FufuLauncher/Models/ScreenshotItem.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/FufuLauncher/Views/ScreenshotGalleryWindow.xaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/FufuLauncher/Views/ScreenshotGalleryWindow.xaml.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.FufuLauncher/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.FufuLauncher/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/ViewModels/MainViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/ViewModels/MainViewModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/AdvancedServerSwitchPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Model/AdvancedServerSwitchPage.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/AdvancedServerSwitchPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Model/AdvancedServerSwitchPage.xaml.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Services/TokenRefreshService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Services/TokenRefreshService.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +27,8 @@
     <option name="RESET_MODE" value="HARD" />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="file://$USER_HOME$/.nuget/packages/microsoft.windowsappsdk/1.7.250606001/include/UndockedRegFreeWinRT-AutoInitializer.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$USER_HOME$/.nuget/packages/microsoft.windowsappsdk/1.7.250606001/include/WindowsAppRuntimeAutoInitializer.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/95c016b9ad4a4fd28f603079af898a921a6910/cf/d2fc4977/HttpHeaderParser.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e703623710cc408eaac0f2c6feb0a00c81230/e9/78bac74a/ExceptionHelpers.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e703623710cc408eaac0f2c6feb0a00c81230/ef/39b547e2/IDictionaryMethods`2.cs" root0="FORCE_HIGHLIGHTING" />
@@ -44,7 +41,6 @@
     <setting file="file://$PROJECT_DIR$/FufuLauncher/Services/TokenRefreshService.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/ViewModels/PluginSettingsViewModel.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/Views/Model/LoginQrWindow.xaml.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/FufuLauncher/Views/ScreenshotGalleryWindow.xaml.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/obj/x64/Debug/net8.0-windows10.0.26100.0/Views/Main/BlankPage.g.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/obj/x64/Debug/net8.0-windows10.0.26100.0/Views/Main/BlankPage.g.i.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/obj/x64/Debug/net8.0-windows10.0.26100.0/Views/Model/AchievementWindow.g.i.cs" root0="SKIP_HIGHLIGHTING" />
@@ -240,7 +236,9 @@
       <workItem from="1775213990268" duration="11164000" />
       <workItem from="1775322716643" duration="6000" />
       <workItem from="1775353341672" duration="3901000" />
-      <workItem from="1775389715166" duration="1992000" />
+      <workItem from="1775389715166" duration="3133000" />
+      <workItem from="1775487276589" duration="177000" />
+      <workItem from="1775622554501" duration="506000" />
     </task>
     <task id="LOCAL-00001" summary="修复部分功能">
       <option name="closed" value="true" />
@@ -570,7 +568,15 @@
       <option name="project" value="LOCAL" />
       <updated>1775358399522</updated>
     </task>
-    <option name="localTasksCounter" value="42" />
+    <task id="LOCAL-00042" summary="增加图库">
+      <option name="closed" value="true" />
+      <created>1775391945507</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1775391945507</updated>
+    </task>
+    <option name="localTasksCounter" value="43" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -591,7 +597,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="fix issue #95" />
     <MESSAGE value="fix issue #102" />
     <MESSAGE value="增加背景回退" />
     <MESSAGE value="优化使用体验" />
@@ -616,7 +621,8 @@
     <MESSAGE value="加防呆" />
     <MESSAGE value="修复崩溃问题" />
     <MESSAGE value="启用按键连点" />
-    <option name="LAST_COMMIT_MESSAGE" value="启用按键连点" />
+    <MESSAGE value="增加图库" />
+    <option name="LAST_COMMIT_MESSAGE" value="增加图库" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
