@@ -46,6 +46,8 @@
             </Border>
 
             <Button x:Name="RefreshButton" Content="刷新二维码" Click="RefreshButton_Click" HorizontalAlignment="Center"/>
+    
+            <Button x:Name="ManualCookieButton" Content="手动输入Cookie" Click="ManualCookieButton_Click" HorizontalAlignment="Center"/>
         </StackPanel>
     </Grid>
 </Window>

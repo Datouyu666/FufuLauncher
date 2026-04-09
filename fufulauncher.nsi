@@ -16,7 +16,7 @@ OutFile "${APP_NAME}_Setup_v${APP_VERSION}.exe"
 !include "x64.nsh"
 !include "FileFunc.nsh"
 
-InstallDir "$LOCALAPPDATA\${APP_NAME}"
+InstallDir "$PROGRAMFILES64\${APP_NAME}"
 RequestExecutionLevel admin
 
 ManifestDPIAware true
@@ -46,15 +46,15 @@ Section "主程序" SecMain
     
     File /r "${SOURCE_DIR}\*"
     
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "DisplayName" "${APP_NAME}"
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "UninstallString" "$INSTDIR\Uninstall.exe"
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "DisplayIcon" "$INSTDIR\${APP_EXE}"
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "Publisher" "${APP_PUBLISHER}"
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "DisplayVersion" "${APP_VERSION}"
     
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -70,6 +70,15 @@ Section "开始菜单快捷方式" SecStartMenu
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\卸载.lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
 
+Section /o "开机自启动" SecAutoStart
+    SetRegView 64
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}" '"$INSTDIR\${APP_EXE}"'
+SectionEnd
+
+Section /o "固定到任务栏" SecTaskbar
+    nsExec::ExecToStack 'powershell.exe -NoProfile -WindowStyle Hidden -Command "(New-Object -ComObject Shell.Application).NameSpace(''$INSTDIR'').ParseName(''${APP_EXE}'').InvokeVerb(''taskbarpin'')"'
+SectionEnd
+
 Section "Uninstall"
     SetRegView 64
     
@@ -82,6 +91,8 @@ Section "Uninstall"
     RMDir /r "$INSTDIR"
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
     DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
+    
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}"
 SectionEnd
 
 Function .onInit
@@ -113,6 +124,7 @@ Function .onInit
 
         ExecWait '$R0 _?=$R1'
         IfErrors no_remove_uninstaller
+       
         Goto done
         
     no_remove_uninstaller:

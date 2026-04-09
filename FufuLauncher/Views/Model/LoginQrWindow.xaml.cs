@@ -156,6 +156,75 @@ public sealed partial class LoginQrWindow : Window
     {
         await RestartLoginFlowAsync();
     }
+    
+    private async void ManualCookieButton_Click(object sender, RoutedEventArgs e)
+    {
+    TextBox inputTextBox = new()
+    {
+        AcceptsReturn = true,
+        Height = 150,
+        TextWrapping = TextWrapping.Wrap,
+        PlaceholderText = "在此处粘贴Cookie"
+    };
+
+    TextBlock errorTextBlock = new()
+    {
+        Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Red),
+        Visibility = Visibility.Collapsed,
+        Margin = new Thickness(0, 10, 0, 0),
+        TextWrapping = TextWrapping.Wrap
+    };
+
+    StackPanel dialogContent = new();
+    dialogContent.Children.Add(inputTextBox);
+    dialogContent.Children.Add(errorTextBlock);
+
+    ContentDialog dialog = new()
+    {
+        Title = "手动输入Cookie",
+        Content = dialogContent,
+        PrimaryButtonText = "保存",
+        CloseButtonText = "取消",
+        XamlRoot = this.Content?.XamlRoot
+    };
+
+    dialog.PrimaryButtonClick += async (s, args) =>
+    {
+        string cookieStr = inputTextBox.Text.Trim();
+        
+        if (string.IsNullOrEmpty(cookieStr) || !cookieStr.Contains("="))
+        {
+            args.Cancel = true;
+            errorTextBlock.Text = "Cookie无效";
+            errorTextBlock.Visibility = Visibility.Visible;
+            return;
+        }
+        
+        ContentDialogButtonClickDeferral deferral = args.GetDeferral();
+        try
+        {
+            await SaveConfigForLauncherAsync(cookieStr);
+            IsLoginSuccessful = true;
+            UpdateStatus("登录成功", false, true);
+            DispatcherQueue.TryEnqueue(() => Close());
+        }
+        catch (Exception ex)
+        {
+            args.Cancel = true;
+            errorTextBlock.Text = $"保存失败: {ex.Message}";
+            errorTextBlock.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    };
+    
+    errorTextBlock.Visibility = Visibility.Collapsed;
+    inputTextBox.Text = string.Empty;
+
+    await dialog.ShowAsync();
+}
 
     private async void LoginMethodComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
