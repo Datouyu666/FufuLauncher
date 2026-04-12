@@ -78,11 +78,11 @@ public partial class App : Application
     private static Microsoft.UI.Dispatching.DispatcherQueue _mainDispatcherQueue = null!;
     public App()
     {
-        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-        UnhandledException += App_UnhandledException;
+        string userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FufuLauncher", "WebView2Data");
         
+        Environment.SetEnvironmentVariable("WEBVIEW2_USER_DATA_FOLDER", userDataFolder);
+
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-        
         UnhandledException += App_UnhandledException;
         
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;

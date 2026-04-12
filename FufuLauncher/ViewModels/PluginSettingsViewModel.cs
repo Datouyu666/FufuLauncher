@@ -46,9 +46,21 @@ public partial class PluginSettingsViewModel : ObservableObject
     
         _iniFile = new IniFile(_iniPath);
     
-        if (!Directory.Exists(_presetsDir))
+        try
         {
-            Directory.CreateDirectory(_presetsDir);
+            if (!Directory.Exists(_presetsDir))
+            {
+                Directory.CreateDirectory(_presetsDir);
+            }
+        }
+        catch (Exception ex)
+        {
+            WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                "目录创建失败",
+                $"无法创建预设配置目录，请检查是否需要管理员权限。\n详细信息: {ex.Message}",
+                NotificationType.Error,
+                6000
+            ));
         }
         
         var localSettings = App.GetService<FufuLauncher.Contracts.Services.ILocalSettingsService>();
@@ -115,30 +127,42 @@ public partial class PluginSettingsViewModel : ObservableObject
             return;
         }
 
-        var fileInfo = new FileInfo(_iniPath);
-        LastModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss");
-
-        var configData = _iniFile.ReadAll();
-        if (configData.TryGetValue("General", out var generalSection))
+        try
         {
-            PluginName = generalSection.GetValueOrDefault("Name", "未知插件");
-            PluginDescription = generalSection.GetValueOrDefault("Description", "无描述");
-            PluginDeveloper = generalSection.GetValueOrDefault("Developer", "未知作者");
+            var fileInfo = new FileInfo(_iniPath);
+            LastModifiedDate = fileInfo.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss");
+
+            var configData = _iniFile.ReadAll();
+            if (configData.TryGetValue("General", out var generalSection))
+            {
+                PluginName = generalSection.GetValueOrDefault("Name", "未知插件");
+                PluginDescription = generalSection.GetValueOrDefault("Description", "无描述");
+                PluginDeveloper = generalSection.GetValueOrDefault("Developer", "未知作者");
+            }
+
+            ManagePresets(configData);
+
+            foreach (var section in _iniFile.ReadAll())
+            {
+                if (section.Key.Equals("General", StringComparison.OrdinalIgnoreCase)) continue;
+
+                var dic = section.Value;
+                var name = dic.GetValueOrDefault("Name", section.Key);
+                var type = dic.GetValueOrDefault("Type", "string");
+                var value = dic.GetValueOrDefault("Value", "");
+
+                var settingItem = new PluginSettingItem(_iniFile, section.Key, name, type, value, OnSettingValueChanged);
+                Settings.Add(settingItem);
+            }
         }
-
-        ManagePresets(configData);
-
-        foreach (var section in _iniFile.ReadAll())
+        catch (Exception ex)
         {
-            if (section.Key.Equals("General", StringComparison.OrdinalIgnoreCase)) continue;
-
-            var dic = section.Value;
-            var name = dic.GetValueOrDefault("Name", section.Key);
-            var type = dic.GetValueOrDefault("Type", "string");
-            var value = dic.GetValueOrDefault("Value", "");
-
-            var settingItem = new PluginSettingItem(_iniFile, section.Key, name, type, value, OnSettingValueChanged);
-            Settings.Add(settingItem);
+            WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                "配置读取失败",
+                $"无法读取插件配置文件。\n详细信息: {ex.Message}",
+                NotificationType.Error,
+                6000
+            ));
         }
     }
 
@@ -163,50 +187,77 @@ public partial class PluginSettingsViewModel : ObservableObject
             catch { }
         }
 
-        var presetFiles = Directory.GetFiles(_presetsDir, "*.json").Where(f => !f.EndsWith("active_state.json"));
-        PresetModel activeModel = null;
-
-        foreach (var file in presetFiles)
+        try
         {
-            try
+            if (Directory.Exists(_presetsDir))
             {
-                var content = File.ReadAllText(file);
-                var preset = JsonSerializer.Deserialize<PresetModel>(content);
-                if (preset != null)
-                {
-                    preset.FilePath = file;
-                    preset.IsLocked = preset.DllHash != currentHash;
-                    AvailablePresets.Add(preset);
+                var presetFiles = Directory.GetFiles(_presetsDir, "*.json").Where(f => !f.EndsWith("active_state.json"));
+                PresetModel activeModel = null;
 
-                    if (preset.Id == activePresetId)
+                foreach (var file in presetFiles)
+                {
+                    try
                     {
-                        activeModel = preset;
+                        var content = File.ReadAllText(file);
+                        var preset = JsonSerializer.Deserialize<PresetModel>(content);
+                        if (preset != null)
+                        {
+                            preset.FilePath = file;
+                            preset.IsLocked = preset.DllHash != currentHash;
+                            AvailablePresets.Add(preset);
+
+                            if (preset.Id == activePresetId)
+                            {
+                                activeModel = preset;
+                            }
+                        }
                     }
+                    catch { }
+                }
+
+                if (activeModel != null && activeModel.IsLocked)
+                {
+                    WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                        "检测到插件变更",
+                        "当前预设与最新插件版本不匹配，已自动生成新预设",
+                        NotificationType.Warning,
+                        5000
+                    ));
+                    activeModel = null;
+                }
+
+                if (activeModel == null)
+                {
+                    activeModel = CreateNewPreset($"默认预设_{DateTime.Now:yyyyMMdd_HHmmss}", currentIniData, currentHash);
+                }
+
+                CurrentPreset = activeModel;
+                SaveActiveState();
+
+                try
+                {
+                    _iniFile.UpdateMultiple(CurrentPreset.ConfigData);
+                }
+                catch (Exception ex)
+                {
+                    WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                        "配置应用失败",
+                        $"无法将预设写入配置文件，请检查权限。\n详细信息: {ex.Message}",
+                        NotificationType.Error,
+                        6000
+                    ));
                 }
             }
-            catch { }
         }
-
-        if (activeModel != null && activeModel.IsLocked)
+        catch (Exception ex)
         {
             WeakReferenceMessenger.Default.Send(new NotificationMessage(
-                "检测到插件变更",
-                "当前预设与最新插件版本不匹配，已自动生成新预设",
-                NotificationType.Warning,
-                5000
+                "预设目录访问失败",
+                $"无法访问预设目录。\n详细信息: {ex.Message}",
+                NotificationType.Error,
+                6000
             ));
-            activeModel = null;
         }
-
-        if (activeModel == null)
-        {
-            activeModel = CreateNewPreset($"默认预设_{DateTime.Now:yyyyMMdd_HHmmss}", currentIniData, currentHash);
-        }
-
-        CurrentPreset = activeModel;
-        SaveActiveState();
-
-        _iniFile.UpdateMultiple(CurrentPreset.ConfigData);
     }
 
     public PresetModel CreateNewPreset(string name, Dictionary<string, Dictionary<string, string>> data, string hash)
@@ -228,16 +279,40 @@ public partial class PluginSettingsViewModel : ObservableObject
     private void SavePresetToFile(PresetModel preset)
     {
         if (string.IsNullOrEmpty(preset.FilePath)) return;
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        File.WriteAllText(preset.FilePath, JsonSerializer.Serialize(preset, options));
+        try
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            File.WriteAllText(preset.FilePath, JsonSerializer.Serialize(preset, options));
+        }
+        catch (Exception ex)
+        {
+            WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                "预设保存失败",
+                $"无法保存预设文件，可能缺少写入权限。\n详细信息: {ex.Message}",
+                NotificationType.Error,
+                6000
+            ));
+        }
     }
 
     private void SaveActiveState()
     {
         if (CurrentPreset == null) return;
-        var stateFile = Path.Combine(_presetsDir, "active_state.json");
-        var stateDict = new Dictionary<string, string> { { "ActiveId", CurrentPreset.Id } };
-        File.WriteAllText(stateFile, JsonSerializer.Serialize(stateDict));
+        try
+        {
+            var stateFile = Path.Combine(_presetsDir, "active_state.json");
+            var stateDict = new Dictionary<string, string> { { "ActiveId", CurrentPreset.Id } };
+            File.WriteAllText(stateFile, JsonSerializer.Serialize(stateDict));
+        }
+        catch (Exception ex)
+        {
+            WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                "状态保存失败",
+                $"无法保存激活状态记录，可能缺少写入权限。\n详细信息: {ex.Message}",
+                NotificationType.Error,
+                6000
+            ));
+        }
     }
 
     private void OnSettingValueChanged(string section, string key, string value)
@@ -258,7 +333,21 @@ public partial class PluginSettingsViewModel : ObservableObject
 
         CurrentPreset = targetPreset;
         SaveActiveState();
-        _iniFile.UpdateMultiple(CurrentPreset.ConfigData);
+        
+        try
+        {
+            _iniFile.UpdateMultiple(CurrentPreset.ConfigData);
+        }
+        catch (Exception ex)
+        {
+            WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                "配置更新失败",
+                $"切换预设时无法写入配置文件。\n详细信息: {ex.Message}",
+                NotificationType.Error,
+                6000
+            ));
+        }
+        
         LoadConfiguration();
         
         WeakReferenceMessenger.Default.Send(new NotificationMessage(
@@ -273,16 +362,28 @@ public partial class PluginSettingsViewModel : ObservableObject
     {
         if (targetPreset == null || string.IsNullOrEmpty(targetPreset.FilePath)) return;
         
-        if (File.Exists(targetPreset.FilePath))
+        try
         {
-            File.Delete(targetPreset.FilePath);
+            if (File.Exists(targetPreset.FilePath))
+            {
+                File.Delete(targetPreset.FilePath);
+            }
+            
+            AvailablePresets.Remove(targetPreset);
+            
+            if (CurrentPreset?.Id == targetPreset.Id)
+            {
+                LoadConfiguration();
+            }
         }
-        
-        AvailablePresets.Remove(targetPreset);
-        
-        if (CurrentPreset?.Id == targetPreset.Id)
+        catch (Exception ex)
         {
-            LoadConfiguration();
+            WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                "预设删除失败",
+                $"无法删除指定的预设文件，文件可能被占用或权限不足。\n详细信息: {ex.Message}",
+                NotificationType.Error,
+                6000
+            ));
         }
     }
 }
@@ -382,7 +483,7 @@ public class PluginSettingItem : ObservableObject
             
             WeakReferenceMessenger.Default.Send(new NotificationMessage(
                 "配置保存失败",
-                ex.Message,
+                $"无法应用当前设置修改，可能缺少写入权限。\n详细信息: {ex.Message}",
                 NotificationType.Error,
                 6000
             ));

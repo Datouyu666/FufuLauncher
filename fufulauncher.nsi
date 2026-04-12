@@ -1,5 +1,5 @@
 ﻿!define APP_NAME "FufuLauncher"
-!define APP_VERSION "1.1.0.0"
+!define APP_VERSION "1.1.0.1"
 !define APP_PUBLISHER "FufuLauncher"
 !define APP_WEB_SITE "https://github.com/FufuLauncher/FufuLauncher"
 !define APP_EXE "FufuLauncher.exe"
@@ -15,6 +15,7 @@ OutFile "${APP_NAME}_Setup_v${APP_VERSION}.exe"
 !include "MUI2.nsh"
 !include "x64.nsh"
 !include "FileFunc.nsh"
+!include "LogicLib.nsh"
 
 InstallDir "$PROGRAMFILES64\${APP_NAME}"
 RequestExecutionLevel admin
@@ -37,6 +38,31 @@ ManifestDPIAware true
 !insertmacro MUI_UNPAGE_INSTFILES
 
 !insertmacro MUI_LANGUAGE "SimpChinese"
+
+; 定义检测并结束进程的宏
+!macro CheckAndKillProcess UN
+    LoopCheck_${UN}:
+        ; 使用 tasklist 查找进程，将结果压入堆栈
+        nsExec::ExecToStack 'cmd /c tasklist /NH /FI "IMAGENAME eq ${APP_EXE}" | find /I "${APP_EXE}"'
+        Pop $0 ; 获取执行状态（0 表示找到进程，1 表示未找到）
+        Pop $1 ; 获取命令输出内容
+        
+        StrCmp $0 "0" ProcessFound_${UN} ProcessNotFound_${UN}
+
+    ProcessFound_${UN}:
+        MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "检测到 ${APP_NAME} 正在运行。$\n$\n点击“确定”以终止进程并继续，或点击“取消”退出。" IDOK KillProcess_${UN} IDCANCEL CancelInstall_${UN}
+
+    KillProcess_${UN}:
+        ; 终止进程
+        nsExec::ExecToStack 'taskkill /F /IM ${APP_EXE} /T'
+        Sleep 1000 ; 等待进程完全退出
+        Goto LoopCheck_${UN} ; 再次检查以确保进程已结束
+
+    CancelInstall_${UN}:
+        Abort
+
+    ProcessNotFound_${UN}:
+!macroend
 
 Section "主程序" SecMain
     SectionIn RO
@@ -72,7 +98,8 @@ SectionEnd
 
 Section /o "开机自启动" SecAutoStart
     SetRegView 64
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}" '"$INSTDIR\${APP_EXE}"'
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" \
+        "${APP_NAME}" '"$INSTDIR\${APP_EXE}"'
 SectionEnd
 
 Section /o "固定到任务栏" SecTaskbar
@@ -101,6 +128,9 @@ Function .onInit
         Abort
     ${EndIf}
   
+    ; 安装前检测进程
+    !insertmacro CheckAndKillProcess ""
+
     SetRegView 64
 
     ReadRegStr $R0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString"
@@ -108,7 +138,7 @@ Function .onInit
 
     FoundInstallation:
     MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-        "${APP_NAME} 已安装。$\n$\n点击'确定'移除旧版本，或'取消'取消安装。" \
+        "${APP_NAME} 已安装。$\n$\n点击“确定”移除旧版本，或“取消”取消安装。" \
         IDOK uninst
     Abort
 
@@ -130,4 +160,9 @@ Function .onInit
     no_remove_uninstaller:
     done:
 
+FunctionEnd
+
+Function un.onInit
+    ; 卸载前检测进程
+    !insertmacro CheckAndKillProcess "un"
 FunctionEnd

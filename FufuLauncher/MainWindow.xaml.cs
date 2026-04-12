@@ -439,8 +439,8 @@ public sealed partial class MainWindow : WindowEx
                 ContentDialog dialog = new()
                 {
                     XamlRoot = rootElement.XamlRoot,
-                    Title = "权限警告",
-                    Content = "程序正以管理员身份运行，可能会影响部分功能。",
+                    Title = "警告",
+                    Content = "程序正以管理员身份运行，可能会影响部分功能，例如你的文件选择有问题",
                     PrimaryButtonText = "不再显示",
                     CloseButtonText = "我知道了",
                     DefaultButton = ContentDialogButton.Close
