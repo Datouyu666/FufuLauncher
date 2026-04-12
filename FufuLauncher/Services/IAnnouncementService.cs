@@ -3,4 +3,6 @@
 public interface IAnnouncementService
 {
     Task<string?> CheckForNewAnnouncementAsync();
+    
+    Task<string> GetCurrentAnnouncementUrlAsync();
 }

@@ -79,6 +79,38 @@ public sealed partial class SettingsPage : Page
         window.Activate();
     }
     
+    private void OnOpenAchievementUpdaterClick(object sender, RoutedEventArgs e)
+    {
+        var updaterWindow = new AchievementUpdaterWindow();
+        updaterWindow.ExtendsContentIntoTitleBar = true;
+
+        IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(updaterWindow);
+        Microsoft.UI.WindowId windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
+        Microsoft.UI.Windowing.AppWindow appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+
+        if (appWindow != null)
+        {
+            string iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets/WindowIcon.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                appWindow.SetIcon(iconPath);
+            }
+
+            var size = new Windows.Graphics.SizeInt32(1100, 750);
+            appWindow.Resize(size);
+
+            var displayArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(windowId, Microsoft.UI.Windowing.DisplayAreaFallback.Primary);
+            if (displayArea != null)
+            {
+                var centeredX = (displayArea.WorkArea.Width - size.Width) / 2;
+                var centeredY = (displayArea.WorkArea.Height - size.Height) / 2;
+                appWindow.Move(new Windows.Graphics.PointInt32(centeredX, centeredY));
+            }
+        }
+
+        updaterWindow.Activate();
+    }
+    
     private void OnOpenDatabaseEditorClick(object sender, RoutedEventArgs e)
     {
         var editorWindow = new DatabaseEditorWindow();

@@ -356,7 +356,7 @@
                                     </Button>
                                 </StackPanel>
                             </Grid>
-                             
+                              
                             <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource SafeBorderBrush}"/>
 
                             <Grid Grid.Row="2" MinHeight="150">
@@ -515,6 +515,31 @@
                                 </Grid>
                             </Button>
                         </Grid>
+                        
+                        <Grid Style="{StaticResource SafeCardStyle}" Padding="20" Translation="0,0,32" Margin="0,12,0,0">
+                            <Grid.Shadow>
+                                <ThemeShadow/>
+                            </Grid.Shadow>
+                            <StackPanel Spacing="16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE9D9;" FontSize="18"/>
+                                        <StackPanel>
+                                            <TextBlock Text="游戏内帧数 (FPS) 监控" FontSize="16" FontWeight="SemiBold"/>
+                                            <TextBlock Text="开启后将在游戏运行时于屏幕左上角显示实时帧数（需要管理员权限）" FontSize="11" Opacity="0.6" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <ToggleSwitch x:Name="FpsOverlayToggle" Grid.Column="1" VerticalAlignment="Center" Toggled="FpsOverlayToggle_Toggled"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                        
                     </StackPanel>
 
                 </StackPanel>

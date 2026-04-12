@@ -193,20 +193,27 @@ public sealed partial class AchievementWindow : Window
             
             if (cat.Achievements == null) continue;
 
-            foreach (var item in cat.Achievements)
+            foreach (var masterItem in cat.Achievements)
             {
-                using var achCmd = connection.CreateCommand();
-                achCmd.Transaction = transaction;
-                achCmd.CommandText = "INSERT INTO Achievements (Id, Title, CategoryName, RawJson, IsCompleted, CurrentProgress, MaxProgress) VALUES (@Id, @Title, @CategoryName, @RawJson, @IsCompleted, @CurrentProgress, @MaxProgress)";
-                
-                achCmd.Parameters.AddWithValue("@Id", item.Id);
-                achCmd.Parameters.AddWithValue("@Title", item.Title ?? "");
-                achCmd.Parameters.AddWithValue("@CategoryName", cat.Name ?? "未知分类");
-                achCmd.Parameters.AddWithValue("@RawJson", JsonSerializer.Serialize(item, writeOptions));
-                achCmd.Parameters.AddWithValue("@IsCompleted", item.IsCompleted ? 1 : 0);
-                achCmd.Parameters.AddWithValue("@CurrentProgress", item.CurrentProgress);
-                achCmd.Parameters.AddWithValue("@MaxProgress", item.MaxProgress);
-                achCmd.ExecuteNonQuery();
+                IEnumerable<AchievementItem> targetItems = (masterItem.Children != null && masterItem.Children.Count > 0) 
+                    ? masterItem.Children 
+                    : new[] { masterItem };
+
+                foreach (var item in targetItems)
+                {
+                    using var achCmd = connection.CreateCommand();
+                    achCmd.Transaction = transaction;
+                    achCmd.CommandText = "INSERT INTO Achievements (Id, Title, CategoryName, RawJson, IsCompleted, CurrentProgress, MaxProgress) VALUES (@Id, @Title, @CategoryName, @RawJson, @IsCompleted, @CurrentProgress, @MaxProgress)";
+                    
+                    achCmd.Parameters.AddWithValue("@Id", item.Id);
+                    achCmd.Parameters.AddWithValue("@Title", item.Title ?? "");
+                    achCmd.Parameters.AddWithValue("@CategoryName", cat.Name ?? "未知分类");
+                    achCmd.Parameters.AddWithValue("@RawJson", JsonSerializer.Serialize(item, writeOptions));
+                    achCmd.Parameters.AddWithValue("@IsCompleted", item.IsCompleted ? 1 : 0);
+                    achCmd.Parameters.AddWithValue("@CurrentProgress", item.CurrentProgress);
+                    achCmd.Parameters.AddWithValue("@MaxProgress", item.MaxProgress);
+                    achCmd.ExecuteNonQuery();
+                }
             }
         }
         transaction.Commit();
@@ -264,22 +271,29 @@ public sealed partial class AchievementWindow : Window
 
                 foreach (var masterItem in masterCat.Achievements)
                 {
-                    string sig = $"{masterItem.Id}_{masterItem.Title ?? ""}";
-                    if (!existingSignatures.Contains(sig))
+                    IEnumerable<AchievementItem> targetItems = (masterItem.Children != null && masterItem.Children.Count > 0) 
+                        ? masterItem.Children 
+                        : new[] { masterItem };
+
+                    foreach (var item in targetItems)
                     {
-                        using var achCmd = connection.CreateCommand();
-                        achCmd.Transaction = transaction;
-                        achCmd.CommandText = "INSERT INTO Achievements (Id, Title, CategoryName, RawJson, IsCompleted, CurrentProgress, MaxProgress) VALUES (@Id, @Title, @CategoryName, @RawJson, @IsCompleted, @CurrentProgress, @MaxProgress)";
-                        achCmd.Parameters.AddWithValue("@Id", masterItem.Id);
-                        achCmd.Parameters.AddWithValue("@Title", masterItem.Title ?? "");
-                        achCmd.Parameters.AddWithValue("@CategoryName", masterCat.Name ?? "未知分类");
-                        achCmd.Parameters.AddWithValue("@RawJson", JsonSerializer.Serialize(masterItem, writeOptions));
-                        achCmd.Parameters.AddWithValue("@IsCompleted", masterItem.IsCompleted ? 1 : 0);
-                        achCmd.Parameters.AddWithValue("@CurrentProgress", masterItem.CurrentProgress);
-                        achCmd.Parameters.AddWithValue("@MaxProgress", masterItem.MaxProgress);
-                        await achCmd.ExecuteNonQueryAsync();
-                        addedCount++;
-                        existingSignatures.Add(sig);
+                        string sig = $"{item.Id}_{item.Title ?? ""}";
+                        if (!existingSignatures.Contains(sig))
+                        {
+                            using var achCmd = connection.CreateCommand();
+                            achCmd.Transaction = transaction;
+                            achCmd.CommandText = "INSERT INTO Achievements (Id, Title, CategoryName, RawJson, IsCompleted, CurrentProgress, MaxProgress) VALUES (@Id, @Title, @CategoryName, @RawJson, @IsCompleted, @CurrentProgress, @MaxProgress)";
+                            achCmd.Parameters.AddWithValue("@Id", item.Id);
+                            achCmd.Parameters.AddWithValue("@Title", item.Title ?? "");
+                            achCmd.Parameters.AddWithValue("@CategoryName", masterCat.Name ?? "未知分类");
+                            achCmd.Parameters.AddWithValue("@RawJson", JsonSerializer.Serialize(item, writeOptions));
+                            achCmd.Parameters.AddWithValue("@IsCompleted", item.IsCompleted ? 1 : 0);
+                            achCmd.Parameters.AddWithValue("@CurrentProgress", item.CurrentProgress);
+                            achCmd.Parameters.AddWithValue("@MaxProgress", item.MaxProgress);
+                            await achCmd.ExecuteNonQueryAsync();
+                            addedCount++;
+                            existingSignatures.Add(sig);
+                        }
                     }
                 }
             }

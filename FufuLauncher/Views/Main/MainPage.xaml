@@ -18,7 +18,7 @@
 
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="CustomPanelBackgroundBrush" 
+                    <SolidColorBrush x:Key="CustomPanelBackgroundBrush"
                                      Color="{ThemeResource CardBackgroundFillColorDefault}"/>
                     <AcrylicBrush x:Key="IosGlassBrush" 
                                   TintColor="#FFFFFF" 
@@ -99,7 +99,7 @@
             </Grid.ColumnDefinitions>
             
             <StackPanel Grid.Column="0" 
-                        Margin="24,0,0,32"
+                        Margin="24,0,0,18"
                         VerticalAlignment="Bottom"
                         Spacing="12">
                 
@@ -118,7 +118,7 @@
                     </Grid.Shadow>
                       
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="145"/>
+                        <RowDefinition Height="155"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
@@ -147,7 +147,7 @@
                                 <DataTemplate>
                                     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0" Padding="0">
                                         <Image Source="{Binding Image.Url}" 
-                                               Stretch="UniformToFill" 
+                                               Stretch="Fill" 
                                                HorizontalAlignment="Center" 
                                                VerticalAlignment="Center" />
                 
@@ -310,36 +310,39 @@
                        x:Name="CopyrightText"
                        IsHitTestVisible="True"/>
             
-            <Grid Grid.Column="1"
-                  VerticalAlignment="Top" HorizontalAlignment="Right" 
-                  Margin="0,32,32,0"
-                  Background="Transparent"
-                  PointerEntered="BackgroundButton_PointerEntered"
-                  PointerExited="BackgroundButton_PointerExited">
+            <StackPanel Grid.Column="1" 
+                        Orientation="Vertical" 
+                        VerticalAlignment="Top" 
+                        HorizontalAlignment="Right" 
+                        Margin="0,32,32,0" 
+                        Spacing="12">
                 
-                <Button Command="{x:Bind ViewModel.ToggleBackgroundTypeCommand}"
-                        IsEnabled="True" 
+                <Button Click="AnnouncementBell_Click"
                         CornerRadius="24" 
-                        Padding="0"
-                        Background="Transparent"
+                        Padding="0" 
+                        Background="Transparent" 
                         BorderThickness="0"
-                        Margin="0">
-                    <Grid x:Name="BackgroundToggleGrid" Opacity="0.0">
-                        <Border x:Name="BackgroundBlurBorder"
-                                Background="{StaticResource IosGlassBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="24">
-                        </Border>
-
-                        <StackPanel Orientation="Horizontal" Margin="18,12">
-                            <TextBlock Text="{x:Bind ViewModel.BackgroundTypeToggleText, Mode=OneWay}"
-                                       Foreground="White"
-                                       FontSize="14" FontWeight="SemiBold"/>
-                        </StackPanel>
+                        HorizontalAlignment="Right">
+                    <Grid>
+                        <Border Background="{StaticResource IosGlassBrush}" 
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="24" />
+                        <FontIcon Glyph="&#xEA8F;" FontSize="18" Foreground="White" Margin="14,12"/>
                     </Grid>
                 </Button>
-            </Grid>
+
+                <Grid Background="Transparent" 
+                      HorizontalAlignment="Right">
+                    <Button Command="{x:Bind ViewModel.ToggleBackgroundTypeCommand}" IsEnabled="True" CornerRadius="24" Padding="0" Background="Transparent" BorderThickness="0" Margin="0">
+                        <Grid>
+                            <Border x:Name="BackgroundBlurBorder" Background="{StaticResource IosGlassBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="24">
+                            </Border>
+                            <FontIcon Glyph="&#xE8B9;" FontSize="18" Foreground="White" Margin="14,12"/>
+                        </Grid>
+                    </Button>
+                </Grid>
+            </StackPanel>
 
             <Button Grid.Row="1" Grid.Column="1"
                     Command="{Binding OpenScreenshotFolderCommand}"

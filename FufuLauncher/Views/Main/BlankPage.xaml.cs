@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Windows.Storage.Pickers;
+using FufuLauncher.Services;
 using FufuLauncher.ViewModels;
 using WinRT.Interop;
 using File = System.IO.File;
@@ -284,6 +285,26 @@ private async void CreateShortcut_Click(object sender, RoutedEventArgs e)
     catch (Exception ex)
     {
         await ShowError($"操作失败: {ex.Message}");
+    }
+}
+
+private async void FpsOverlayToggle_Toggled(object sender, RoutedEventArgs e)
+{
+    if (FpsOverlayToggle.IsOn)
+    {
+        if (!FpsOverlayService.Instance.IsAdministrator())
+        {
+            FpsOverlayToggle.IsOn = false;
+            await ShowError("开启帧数监控失败：该功能需要以管理员身份运行启动器。");
+            return;
+        }
+                
+        await _localSettingsService.SaveSettingAsync("IsFpsOverlayEnabled", true);
+    }
+    else
+    {
+        FpsOverlayService.Instance.StopOverlay();
+        await _localSettingsService.SaveSettingAsync("IsFpsOverlayEnabled", false);
     }
 }
 
@@ -785,6 +806,22 @@ private async void CreateShortcut_Click(object sender, RoutedEventArgs e)
 {
     EntranceStoryboard.Begin();
     Debug.WriteLine("========== [Debug] BlankPage_Loaded 开始 ==========");
+    
+    try
+    {
+        var fpsSettingObj = await _localSettingsService.ReadSettingAsync("IsFpsOverlayEnabled");
+        if (fpsSettingObj is bool isFpsEnabled)
+        {
+            FpsOverlayToggle.Toggled -= FpsOverlayToggle_Toggled;
+            FpsOverlayToggle.IsOn = isFpsEnabled;
+            FpsOverlayToggle.Toggled += FpsOverlayToggle_Toggled;
+        }
+    }
+    catch (Exception ex)
+    {
+        Debug.WriteLine($"[Debug] 读取帧数显示开关状态失败: {ex.Message}");
+    }
+
     try
     {
         var savedPathObj = await _localSettingsService.ReadSettingAsync("GameInstallationPath");

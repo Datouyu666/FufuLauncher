@@ -1,9 +1,12 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 using FufuLauncher.Contracts.Services;
 using FufuLauncher.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
+using FufuLauncher.Messages;
 
 namespace FufuLauncher.Services
 {
@@ -27,6 +30,7 @@ namespace FufuLauncher.Services
         private const string UseInjectionKey = "UseInjection";
         private const string CustomLaunchParametersKey = "CustomLaunchParameters";
         public const string GenshinHDRConfigKey = "IsGenshinHDRForcedEnabled";
+        private readonly IPluginUpdateService _pluginUpdateService;
 
         private bool _lastUseInjection;
 
@@ -34,12 +38,14 @@ namespace FufuLauncher.Services
             ILocalSettingsService localSettingsService,
             IGameConfigService gameConfigService,
             ILauncherService launcherService,
-            ControlPanelModel controlPanelModel)
+            ControlPanelModel controlPanelModel,
+            IPluginUpdateService pluginUpdateService)
         {
             _localSettingsService = localSettingsService;
             _gameConfigService = gameConfigService;
             _launcherService = launcherService;
             _controlPanelModel = controlPanelModel;
+            _pluginUpdateService = pluginUpdateService;
         }
 
         [DllImport("user32.dll")]
@@ -47,6 +53,13 @@ namespace FufuLauncher.Services
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        public bool IsAdministrator()
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
 
         public bool IsGamePathSelected()
         {
@@ -134,7 +147,7 @@ namespace FufuLauncher.Services
             }
         }
 
-        private async Task WaitGenshinStartAsync()
+        private async Task<int> WaitGenshinStartAsync()
         {
             int timeoutMs = 60000;
             int elapsedMs = 0;
@@ -144,31 +157,21 @@ namespace FufuLauncher.Services
             {
                 await Task.Delay(delayMs);
                 elapsedMs += delayMs;
-
-                IntPtr hwid = GetForegroundWindow();
-                if (hwid == IntPtr.Zero) continue;
-        
-                GetWindowThreadProcessId(hwid, out uint pid);
-                try
+                
+                var processes = Process.GetProcesses();
+                foreach (var process in processes)
                 {
-                    var process = Process.GetProcessById((int)pid);
                     if (process.ProcessName.Equals("GenshinImpact", StringComparison.OrdinalIgnoreCase) ||
                         process.ProcessName.Equals("YuanShen", StringComparison.OrdinalIgnoreCase))
                     {
                         await Task.Delay(2000);
-                        break;
+                        return process.Id;
                     }
-                }
-                catch
-                {
-                    // ignored
                 }
             }
     
-            if (elapsedMs >= timeoutMs)
-            {
-                Trace.WriteLine("[启动流程] 警告：等待游戏主窗口超时 (60秒)");
-            }
+            Trace.WriteLine("[启动流程] 警告：等待游戏主程序超时 (60秒)");
+            return 0;
         }
 
         public async Task<LaunchResult> LaunchGameAsync()
@@ -197,7 +200,7 @@ namespace FufuLauncher.Services
                 var hasGenshin = File.Exists(genshinExePath);
                 var hasYuanShen = File.Exists(yuanShenExePath);
                 var gameExePath = string.Empty;
-
+                
                 if (hasGenshin && hasYuanShen)
                 {
                     result.ErrorMessage = "在当前游戏目录中同时检测到了国际服(GenshinImpact.exe)和国服(YuanShen.exe)程序，启动器无法确定该启动哪一个。请清理多余的客户端文件。";
@@ -238,6 +241,8 @@ namespace FufuLauncher.Services
 
                 if (useInjection)
                 {
+                    await _pluginUpdateService.ExecuteAutoUpdateAsync(logBuilder);
+                    
                     int configMask = 0;
 
                     logBuilder.AppendLine($"[启动流程] 配置掩码: {configMask}");
@@ -282,6 +287,30 @@ namespace FufuLauncher.Services
                             logBuilder.AppendLine($"[启动流程] 扫描插件目录时发生异常: {ex.Message}");
                         }
                     }
+                    
+                    if (!string.IsNullOrEmpty(targetDllPath) && File.Exists(targetDllPath))
+                    {
+                        try
+                        {
+                            var fileInfo = new FileInfo(targetDllPath);
+                            if (fileInfo.Length < 99 * 1024)
+                            {
+                                logBuilder.AppendLine($"[启动流程] ! 警告: 插件文件({fileInfo.Length} bytes)大小异常，可能已经损坏");
+                                WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                                    "插件可能已损坏",
+                                    "插件文件被杀毒软件破坏或拦截，功能可能失效或者直接无法运行，建议重新安装插件",
+                                    NotificationType.Warning,
+                                    6000));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logBuilder.AppendLine($"[启动流程] 检查插件大小失败: {ex.Message}");
+                        }
+
+                        logBuilder.AppendLine($"[启动流程] 准备注入 DLL: {targetDllPath}");
+                        gameStarted = await LaunchViaElevatedProcessAsync(gameExePath, targetDllPath, configMask, arguments, logBuilder);
+                    }
 
                     if (!string.IsNullOrEmpty(targetDllPath) && File.Exists(targetDllPath))
                     {
@@ -301,17 +330,17 @@ namespace FufuLauncher.Services
 
                 if (gameStarted)
                 {
-                    logBuilder.AppendLine("[启动流程] 游戏进程已启动");
+                    logBuilder.AppendLine("[启动流程] 游戏进程已启动，正在捕获目标PID...");
+                    int gamePid = await WaitGenshinStartAsync();
+
                     await LaunchAdditionalProgramAsync();
                     await LaunchBetterGIAsync();
+
+                    await CheckAndLaunchFpsOverlayAsync(logBuilder, gamePid);
 
                     result.Success = true;
                     result.ErrorMessage = "";
                 }
-                //else
-                //{
-                //    result.ErrorMessage = $"游戏启动失败\n\n{errorDetail}";
-                //}
 
                 result.DetailLog = logBuilder.ToString();
                 Debug.WriteLine(result.DetailLog);
@@ -326,16 +355,43 @@ namespace FufuLauncher.Services
             }
         }
 
+        private async Task CheckAndLaunchFpsOverlayAsync(StringBuilder logBuilder, int gamePid)
+        {
+            try
+            {
+                var isFpsEnabled = await _localSettingsService.ReadSettingAsync("IsFpsOverlayEnabled");
+                if (isFpsEnabled != null && Convert.ToBoolean(isFpsEnabled))
+                {
+                    if (!IsAdministrator())
+                    {
+                        logBuilder.AppendLine("[启动流程] 检查到系统未以管理员权限运行，不允许启用帧数监控，已自动重置该设置。");
+                        await _localSettingsService.SaveSettingAsync("IsFpsOverlayEnabled", false);
+                        return;
+                    }
+
+                    if (gamePid > 0)
+                    {
+                        logBuilder.AppendLine($"[启动流程] 权限校验通过，正在为进程(PID:{gamePid})启动系统性能监控遮罩。");
+                        FpsOverlayService.Instance.StartOverlay(gamePid);
+                    }
+                    else
+                    {
+                        logBuilder.AppendLine("[启动流程] 无法获取游戏进程PID，帧数监控启动中止。");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logBuilder.AppendLine($"[启动流程] 帧数监控遮罩启动异常: {ex.Message}");
+            }
+        }
+
         private StringBuilder BuildLaunchArguments(GameConfig config)
         {
             var args = new StringBuilder();
 
-            if (config.ServerType.Contains("官服"))
-            {
-            }
-            else if (config.ServerType.Contains("B服"))
-            {
-            }
+            if (config.ServerType.Contains("官服")) {}
+            else if (config.ServerType.Contains("B服")){}
 
             var customParamsObj = _localSettingsService.ReadSettingAsync(CustomLaunchParametersKey).Result;
             if (customParamsObj != null)

@@ -676,43 +676,13 @@ private bool IsVCRedistInstalled()
             var currentTheme = rootElement.ActualTheme;
             if (currentTheme == ElementTheme.Default)
                 currentTheme = Application.Current.RequestedTheme == ApplicationTheme.Dark ? ElementTheme.Dark : ElementTheme.Light;
+            
+            var themeBgColor = currentTheme == ElementTheme.Dark 
+                ? Color.FromArgb(255, 32, 32, 32) 
+                : Color.FromArgb(255, 243, 243, 243);
 
-            if (currentTheme == ElementTheme.Dark)
-                GlobalBackgroundOverlay.Fill = new SolidColorBrush(Colors.Black);
-            else
-                GlobalBackgroundOverlay.Fill = new SolidColorBrush(Colors.White);
-
-            if (_isVideoBackground)
-            {
-                var solidColor = currentTheme == ElementTheme.Dark ? Colors.Black : Colors.White;
-                solidColor.A = (byte)(currentTheme == ElementTheme.Dark ? 120 : 150);
-                PageBackgroundOverlay.Background = new SolidColorBrush(solidColor);
-            }
-            else
-            {
-                var acrylic = new AcrylicBrush();
-
-                if (currentTheme == ElementTheme.Dark)
-                {
-                    acrylic.TintColor = Colors.Black;
-                    acrylic.TintOpacity = 0.3;
-                    acrylic.FallbackColor = Color.FromArgb(20, 0, 0, 0);
-                }
-                else
-                {
-                    acrylic.TintColor = Colors.White;
-                    acrylic.TintOpacity = 0.2;
-                    acrylic.FallbackColor = Color.FromArgb(20, 255, 255, 255);
-                }
-
-                PageBackgroundOverlay.Background = acrylic;
-            }
-
-            if (SystemMessageBar.Children.Count > 0 && SystemMessageBar.Children[0] is Border msgBorder && msgBorder.Background is AcrylicBrush msgAcrylic)
-            {
-                msgAcrylic.TintColor = currentTheme == ElementTheme.Dark ? Colors.Black : Colors.White;
-                msgAcrylic.Opacity = currentTheme == ElementTheme.Dark ? 0.7 : 0.6;
-            }
+            GlobalBackgroundOverlay.Fill = new SolidColorBrush(themeBgColor);
+            PageBackgroundOverlay.Background = new SolidColorBrush(themeBgColor);
 
             ApplyFrameBackgroundOpacity(_frameBackgroundOpacity);
         }
@@ -1168,59 +1138,89 @@ private Task ApplyGlobalBackgroundAsync(BackgroundRenderResult? result)
     }
 
     private void UpdatePageOverlayState(bool isMainPage)
+{
+    try
     {
-        try
+        var screenHeight = Bounds.Height > 0 ? Bounds.Height : 1000;
+
+        if (isMainPage && _isOverlayShown)
         {
-            var screenHeight = Bounds.Height > 0 ? Bounds.Height : 1000;
-
-            if (isMainPage && _isOverlayShown)
+            // 退出时的动画：向下滑动 + 渐隐
+            var translateAnim = new DoubleAnimation
             {
-                var anim = new DoubleAnimation
-                {
-                    From = 0,
-                    To = screenHeight + 50,
-                    Duration = TimeSpan.FromMilliseconds(400),
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
-                };
+                From = 0,
+                To = screenHeight + 50,
+                Duration = TimeSpan.FromMilliseconds(400),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
 
-                var sb = new Storyboard();
-                Storyboard.SetTarget(anim, OverlayTranslate);
-                Storyboard.SetTargetProperty(anim, "Y");
-                sb.Children.Add(anim);
-                sb.Begin();
-
-                _isOverlayShown = false;
-            }
-            else if (!isMainPage && !_isOverlayShown)
+            var opacityAnim = new DoubleAnimation
             {
-                OverlayTranslate.Y = screenHeight;
+                From = 1.0,
+                To = 0.0,
+                Duration = TimeSpan.FromMilliseconds(400),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
 
-                var anim = new DoubleAnimation
-                {
-                    From = screenHeight,
-                    To = 0,
-                    Duration = TimeSpan.FromMilliseconds(500),
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-                };
+            var sb = new Storyboard();
+            Storyboard.SetTarget(translateAnim, OverlayTranslate);
+            Storyboard.SetTargetProperty(translateAnim, "Y");
+            
+            Storyboard.SetTarget(opacityAnim, PageBackgroundOverlay);
+            Storyboard.SetTargetProperty(opacityAnim, "Opacity");
 
-                var sb = new Storyboard();
-                Storyboard.SetTarget(anim, OverlayTranslate);
-                Storyboard.SetTargetProperty(anim, "Y");
-                sb.Children.Add(anim);
-                sb.Begin();
+            sb.Children.Add(translateAnim);
+            sb.Children.Add(opacityAnim);
+            sb.Begin();
 
-                _isOverlayShown = true;
-            }
-            else if (!isMainPage && _isOverlayShown)
-            {
-                OverlayTranslate.Y = 0;
-            }
+            _isOverlayShown = false;
         }
-        catch (Exception ex)
+        else if (!isMainPage && !_isOverlayShown)
         {
-            Debug.WriteLine($"[MainWindow] 遮罩动画异常: {ex.Message}");
+            // 进入时的动画：向上滑动 + 渐显
+            OverlayTranslate.Y = screenHeight;
+            PageBackgroundOverlay.Opacity = 0.0; // 确保初始状态是透明的，为渐显做准备
+
+            var translateAnim = new DoubleAnimation
+            {
+                From = screenHeight,
+                To = 0,
+                Duration = TimeSpan.FromMilliseconds(500),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            var opacityAnim = new DoubleAnimation
+            {
+                From = 0.0,
+                To = 1.0,
+                Duration = TimeSpan.FromMilliseconds(500),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            var sb = new Storyboard();
+            Storyboard.SetTarget(translateAnim, OverlayTranslate);
+            Storyboard.SetTargetProperty(translateAnim, "Y");
+            
+            Storyboard.SetTarget(opacityAnim, PageBackgroundOverlay);
+            Storyboard.SetTargetProperty(opacityAnim, "Opacity");
+
+            sb.Children.Add(translateAnim);
+            sb.Children.Add(opacityAnim);
+            sb.Begin();
+
+            _isOverlayShown = true;
+        }
+        else if (!isMainPage && _isOverlayShown)
+        {
+            OverlayTranslate.Y = 0;
+            PageBackgroundOverlay.Opacity = 1.0;
         }
     }
+    catch (Exception ex)
+    {
+        Debug.WriteLine($"[MainWindow] 遮罩动画异常: {ex.Message}");
+    }
+}
 
     private void Settings_ColorValuesChanged(UISettings sender, object args)
     {

@@ -166,6 +166,7 @@ public partial class App : Application
                 services.AddTransient<GachaViewModel>();
                 services.AddSingleton<GachaService>();
                 services.AddSingleton<IAnnouncementService, AnnouncementService>();
+                services.AddTransient<IPluginUpdateService, PluginUpdateService>();
                 services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));
             })
             .Build();

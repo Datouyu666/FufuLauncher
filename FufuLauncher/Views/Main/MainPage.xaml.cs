@@ -30,17 +30,8 @@ public sealed partial class MainPage : Page
     {
         AnimateCopyrightOpacity(0.05);
     }
-
-    private void BackgroundButton_PointerEntered(object sender, PointerRoutedEventArgs e)
-    {
-        AnimateBackgroundToggleOpacity(1.0);
-    }
-
-    private void BackgroundButton_PointerExited(object sender, PointerRoutedEventArgs e)
-    {
-        AnimateBackgroundToggleOpacity(0.0);
-    }
-private async void SwitchToBilibili_Click(object sender, RoutedEventArgs e)
+    
+        private async void SwitchToBilibili_Click(object sender, RoutedEventArgs e)
         {
             await PrepareAndSwitchServer(true);
         }
@@ -92,6 +83,42 @@ private async void SwitchToBilibili_Click(object sender, RoutedEventArgs e)
             catch (Exception ex)
             {
                 await ShowDialog("错误", $"准备切换时发生异常: {ex.Message}");
+            }
+        }
+        
+        private async void AnnouncementBell_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var announcementService = App.GetService<IAnnouncementService>();
+                
+                var announcementUrl = await announcementService.GetCurrentAnnouncementUrlAsync();
+                
+                if (string.IsNullOrEmpty(announcementUrl))
+                {
+                    var localSettings = App.GetService<ILocalSettingsService>();
+                    
+                    var lastUrlObj = await localSettings.ReadSettingAsync("LastAnnouncementUrl");
+                    if (lastUrlObj is string lastUrl && !string.IsNullOrEmpty(lastUrl))
+                    {
+                        announcementUrl = lastUrl;
+                    }
+                }
+
+
+                if (!string.IsNullOrEmpty(announcementUrl))
+                {
+                    var announcementWindow = new AnnouncementWindowL(announcementUrl);
+                    announcementWindow.Activate();
+                }
+                else
+                {
+                    Debug.WriteLine("[Announcement] 手动获取公告失败：未获取到且无本地缓存");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Announcement] 手动触发公告异常: {ex.Message}");
             }
         }
         
@@ -167,25 +194,6 @@ private async void SwitchToBilibili_Click(object sender, RoutedEventArgs e)
             };
             await dialog.ShowAsync();
         }
-    private void AnimateBackgroundToggleOpacity(double toOpacity)
-    {
-        if (BackgroundToggleGrid == null) return;
-
-        var storyboard = new Storyboard();
-        var animation = new DoubleAnimation
-        {
-            To = toOpacity,
-            Duration = new Duration(TimeSpan.FromMilliseconds(200)),
-            EnableDependentAnimation = true
-        };
-
-        Storyboard.SetTarget(animation, BackgroundToggleGrid);
-        Storyboard.SetTargetProperty(animation, "Opacity");
-
-        storyboard.Children.Add(animation);
-        storyboard.Begin();
-    }
-
     private void AnimateCopyrightOpacity(double toOpacity)
     {
         var storyboard = new Storyboard();

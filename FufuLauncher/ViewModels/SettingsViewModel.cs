@@ -302,20 +302,8 @@ namespace FufuLauncher.ViewModels
         {
             try
             {
-                var updateExePath = Path.Combine(AppContext.BaseDirectory, "update.exe");
-        
-                if (File.Exists(updateExePath))
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = updateExePath,
-                        UseShellExecute = true 
-                    });
-                }
-                else
-                {
-                    Debug.WriteLine("未找到 update.exe: " + updateExePath);
-                }
+                var updateWindow = new Views.UpdateWindow();
+                updateWindow.Activate();
             }
             catch (Exception ex)
             {

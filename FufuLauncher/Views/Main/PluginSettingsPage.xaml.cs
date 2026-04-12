@@ -13,6 +13,7 @@ public sealed partial class PluginSettingsPage : Page
     public PluginSettingsViewModel ViewModel { get; }
     public MainViewModel MainVM { get; }
     public ControlPanelModel ControlPanelVM { get; }
+    private FeedbackWindow _feedbackWindow;
 
     public PluginSettingsPage()
     {
@@ -20,9 +21,38 @@ public sealed partial class PluginSettingsPage : Page
         MainVM = App.GetService<MainViewModel>();
         ControlPanelVM = App.GetService<ControlPanelModel>();
         InitializeComponent();
+        
+        Loaded += PluginSettingsPage_Loaded;
+    }
+    
+    private async void PluginSettingsPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.IsPluginCorrupted())
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "插件可能已损坏",
+                Content = "插件文件异常\n这通常是因为插件被杀毒软件（如 Windows Defender）误判拦截或遭到破坏\n\n建议您：\n1. 将本软件目录加入杀毒软件白名单\n2. 在本页面重新下载并安装插件",
+                PrimaryButtonText = "我知道了",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = XamlRoot
+            };
+
+            await dialog.ShowAsync();
+        }
     }
 
     public bool InvertBool(bool value) => !value;
+    
+    private void OnFeedbackClick(object sender, RoutedEventArgs e)
+    {
+        if (_feedbackWindow == null)
+        {
+            _feedbackWindow = new FeedbackWindow();
+            _feedbackWindow.Closed += (s, args) => _feedbackWindow = null;
+        }
+        _feedbackWindow.Activate();
+    }
 
     private void OnSwitchPresetClick(object sender, RoutedEventArgs e)
     {

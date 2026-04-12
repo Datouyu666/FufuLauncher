@@ -16,7 +16,7 @@ public class IniFile
         var result = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         if (!File.Exists(_path)) return result;
 
-        string currentSection = string.Empty;
+        var currentSection = string.Empty;
         var lines = File.ReadAllLines(_path, Encoding.UTF8);
 
         foreach (var line in lines)
@@ -43,7 +43,6 @@ public class IniFile
                 result[currentSection][key] = value;
             }
         }
-
         return result;
     }
 
@@ -81,8 +80,8 @@ public class IniFile
 
     private void UpdateLinesForKeyValue(List<string> lines, string section, string key, string value)
     {
-        bool inTargetSection = false;
-        bool keyFound = false;
+        var inTargetSection = false;
+        var keyFound = false;
 
         for (int i = 0; i < lines.Count; i++)
         {

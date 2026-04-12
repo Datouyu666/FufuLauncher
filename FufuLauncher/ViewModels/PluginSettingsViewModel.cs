@@ -15,6 +15,7 @@ public partial class PluginSettingsViewModel : ObservableObject
     private readonly string _presetsDir;
     private readonly string _dllPath;
     private readonly IniFile _iniFile;
+    private bool _isAutoUpdatePluginEnabled;
 
     [ObservableProperty]
     private string pluginName;
@@ -42,15 +43,49 @@ public partial class PluginSettingsViewModel : ObservableObject
         _iniPath = Path.Combine(_pluginDir, "config.ini");
         _dllPath = Path.Combine(_pluginDir, "FufuLauncher.UnlockerIsland.dll");
         _presetsDir = Path.Combine(AppContext.BaseDirectory, "Plugins", "Presets");
-        
+    
         _iniFile = new IniFile(_iniPath);
-        
+    
         if (!Directory.Exists(_presetsDir))
         {
             Directory.CreateDirectory(_presetsDir);
         }
+        
+        var localSettings = App.GetService<FufuLauncher.Contracts.Services.ILocalSettingsService>();
+        if (localSettings != null)
+        {
+            var task = localSettings.ReadSettingAsync("IsAutoUpdatePluginEnabled");
+            task.Wait();
+            _isAutoUpdatePluginEnabled = task.Result != null && Convert.ToBoolean(task.Result);
+        }
 
         LoadConfiguration();
+    }
+    
+    public bool IsPluginCorrupted()
+    {
+        if (File.Exists(_dllPath))
+        {
+            var fileInfo = new FileInfo(_dllPath);
+            return fileInfo.Length < 99 * 1024;
+        }
+        return false; 
+    }
+    
+    public bool IsAutoUpdatePluginEnabled
+    {
+        get => _isAutoUpdatePluginEnabled;
+        set
+        {
+            if (SetProperty(ref _isAutoUpdatePluginEnabled, value))
+            {
+                var localSettings = App.GetService<FufuLauncher.Contracts.Services.ILocalSettingsService>();
+                if (localSettings != null)
+                {
+                    _ = localSettings.SaveSettingAsync("IsAutoUpdatePluginEnabled", value);
+                }
+            }
+        }
     }
 
     private string GetTargetDllHash()
