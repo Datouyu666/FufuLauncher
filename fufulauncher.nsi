@@ -17,8 +17,9 @@ OutFile "${APP_NAME}_Setup_v${APP_VERSION}.exe"
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
 
-InstallDir "$PROGRAMFILES64\${APP_NAME}"
-RequestExecutionLevel admin
+; 采用标准的 Windows 用户级程序安装路径
+InstallDir "$LOCALAPPDATA\Programs\${APP_NAME}"
+RequestExecutionLevel user
 
 ManifestDPIAware true
 
@@ -72,15 +73,15 @@ Section "主程序" SecMain
     
     File /r "${SOURCE_DIR}\*"
     
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "DisplayName" "${APP_NAME}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "UninstallString" "$INSTDIR\Uninstall.exe"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "DisplayIcon" "$INSTDIR\${APP_EXE}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "Publisher" "${APP_PUBLISHER}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" \
         "DisplayVersion" "${APP_VERSION}"
     
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -98,7 +99,7 @@ SectionEnd
 
 Section /o "开机自启动" SecAutoStart
     SetRegView 64
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" \
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" \
         "${APP_NAME}" '"$INSTDIR\${APP_EXE}"'
 SectionEnd
 
@@ -115,11 +116,11 @@ Section "Uninstall"
     
     Delete "$DESKTOP\${APP_NAME}.lnk"
     
+    ; 此命令仅移除安装目录（Programs\FufuLauncher），不影响 LocalAppData\FufuLauncher 配置文件
     RMDir /r "$INSTDIR"
-    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
     DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
     
-    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}"
 SectionEnd
 
 Function .onInit
@@ -133,19 +134,15 @@ Function .onInit
 
     SetRegView 64
 
+    ; 仅检测当前用户的注册表键值
     ReadRegStr $R0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString"
-    StrCmp $R0 "" CheckHKLM
+    StrCmp $R0 "" done
 
-    FoundInstallation:
+    ; 删除了无用的 FoundInstallation 标签声明
     MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
         "${APP_NAME} 已安装。$\n$\n点击“确定”移除旧版本，或“取消”取消安装。" \
         IDOK uninst
     Abort
-
-    CheckHKLM:
-    ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString"
-    StrCmp $R0 "" done
-    Goto FoundInstallation
 
     uninst:
         ClearErrors

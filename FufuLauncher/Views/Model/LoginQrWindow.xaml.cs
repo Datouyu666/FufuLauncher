@@ -4,6 +4,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
+using CommunityToolkit.Mvvm.Messaging;
+using FufuLauncher.Messages;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -139,6 +141,15 @@ public sealed partial class LoginQrWindow : Window
         catch (Exception ex)
         {
             Debug.WriteLine($"检查或应用本地配置失败: {ex.Message}");
+        
+            WeakReferenceMessenger.Default.Send(
+                new NotificationMessage(
+                    "应用配置失败",
+                    $"写入配置文件时发生错误: {ex.Message}",
+                    NotificationType.Error,
+                    4000
+                )
+            );
         }
 
         UpdateGameAppIdFromSelection();
@@ -851,11 +862,29 @@ public sealed partial class LoginQrWindow : Window
             catch (Exception ex)
             {
                 Debug.WriteLine($"配置数据库保存失败: {ex.Message}");
+                
+                WeakReferenceMessenger.Default.Send(
+                    new NotificationMessage(
+                        "保存状态异常",
+                        $"配置数据库保存失败: {ex.Message}",
+                        NotificationType.Error,
+                        4000
+                    )
+                );
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"兼容配置保存失败: {ex.Message}");
+            
+            WeakReferenceMessenger.Default.Send(
+                new NotificationMessage(
+                    "写入配置失败",
+                    $"无法保存配置文件，请检查权限: {ex.Message}",
+                    NotificationType.Error,
+                    4000
+                )
+            );
         }
     }
 
