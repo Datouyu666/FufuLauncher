@@ -371,7 +371,6 @@
                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="18,12">
                         <FontIcon Glyph="&#xE8B7;"
                                   FontSize="16" Foreground="White"/>
-                        <TextBlock Text="截图文件夹" FontSize="14" FontWeight="SemiBold" Foreground="White"/>
                     </StackPanel>
                 </Grid>
             </Button>

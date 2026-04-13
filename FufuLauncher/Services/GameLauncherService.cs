@@ -203,7 +203,7 @@ namespace FufuLauncher.Services
                 
                 if (hasGenshin && hasYuanShen)
                 {
-                    result.ErrorMessage = "在当前游戏目录中同时检测到了国际服(GenshinImpact.exe)和国服(YuanShen.exe)程序，启动器无法确定该启动哪一个。请清理多余的客户端文件。";
+                    result.ErrorMessage = "在当前游戏目录中同时检测到了国际服(GenshinImpact.exe)和国服(YuanShen.exe)程序，启动器无法确定该启动哪一个，请清理多余的客户端文件";
                     logBuilder.AppendLine($"[启动流程] ? 错误: {result.ErrorMessage}");
                     result.DetailLog = logBuilder.ToString();
                     return result;
@@ -211,7 +211,7 @@ namespace FufuLauncher.Services
 
                 if (!hasGenshin && !hasYuanShen)
                 {
-                    result.ErrorMessage = $"游戏主程序不存在，请检查路径设置是否正确。\n查找路径:\n- {genshinExePath}\n- {yuanShenExePath}";
+                    result.ErrorMessage = $"游戏主程序不存在，请检查路径设置是否正确\n查找路径:\n1. {genshinExePath}\n2. {yuanShenExePath}";
                     logBuilder.AppendLine($"[启动流程] ? 错误: {result.ErrorMessage}");
                     result.DetailLog = logBuilder.ToString();
                     return result;

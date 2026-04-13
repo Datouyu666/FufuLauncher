@@ -4,6 +4,7 @@ using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using Windows.Foundation;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.Messaging.Messages;
@@ -1235,10 +1236,23 @@ private Task ApplyGlobalBackgroundAsync(BackgroundRenderResult? result)
     {
         try
         {
-            var notificationCard = CreateNotificationCard(message);
-            NotificationPanel.Children.Add(notificationCard);
-            AnimateNotification(notificationCard, 380, 0, 300);
-            if (message.Duration > 0) SetupAutoDismiss(notificationCard, message.Duration);
+            // 逻辑更新：如果容器处于隐藏状态，或正处于退场动画过程中，均需重置状态并播放进场动画
+            if (NotificationContainer.Visibility == Visibility.Collapsed || 
+                (NotificationContainer.Tag is string state && state == "Closing"))
+            {
+                NotificationContainer.Tag = null; // 清除关闭状态标识
+                NotificationContainer.Visibility = Visibility.Visible;
+                PlayContainerEntranceAnimation();
+            }
+
+            var infoBar = CreateInfoBar(message);
+            NotificationPanel.Children.Insert(0, infoBar);
+            PlayEntranceAnimation(infoBar);
+            
+            if (message.Duration > 0)
+            {
+                SetupAutoDismiss(infoBar, message.Duration);
+            }
         }
         catch
         {
@@ -1246,136 +1260,300 @@ private Task ApplyGlobalBackgroundAsync(BackgroundRenderResult? result)
         }
     }
 
-private Grid CreateNotificationCard(NotificationMessage message)
-{
-    var card = new Grid
+    private InfoBar CreateInfoBar(NotificationMessage message)
     {
-        Background = GetNotificationBrush(message.Type),
-        CornerRadius = new CornerRadius(8),
-        Padding = new Thickness(16, 12, 16, 12),
-        MinHeight = 80, 
-        Width = 360,
-        Margin = new Thickness(0, 0, 0, 8),
-        RenderTransform = new TranslateTransform { X = 380 }
-    };
-    
-    card.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-    card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-    card.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-    
-    var fallbackFontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol");
-
-    var icon = new FontIcon 
-    { 
-        FontFamily = fallbackFontFamily, 
-        FontSize = 18, 
-        Glyph = GetNotificationIcon(message.Type), 
-        VerticalAlignment = VerticalAlignment.Top, 
-        Margin = new Thickness(0, 2, 12, 0),
-        Foreground = new SolidColorBrush(Colors.White) 
-    };
-    Grid.SetColumn(icon, 0);
-    
-    var contentPanel = new StackPanel 
-    { 
-        Spacing = 6, 
-        VerticalAlignment = VerticalAlignment.Center 
-    };
-    Grid.SetColumn(contentPanel, 1);
-    
-    contentPanel.Children.Add(new TextBlock 
-    { 
-        Text = message.Title, 
-        FontSize = 14, 
-        FontWeight = FontWeights.SemiBold, 
-        TextWrapping = TextWrapping.WrapWholeWords, 
-        Foreground = new SolidColorBrush(Colors.White) 
-    });
-    
-    contentPanel.Children.Add(new TextBlock 
-    { 
-        Text = message.Message, 
-        FontSize = 12, 
-        Opacity = 0.9, 
-        TextWrapping = TextWrapping.WrapWholeWords, 
-        Foreground = new SolidColorBrush(Colors.White) 
-    });
-    
-    var closeButton = new Button 
-    { 
-        Content = new FontIcon { FontFamily = fallbackFontFamily, Glyph = "\uE711", FontSize = 12 }, 
-        Background = new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)),
-        BorderThickness = new Thickness(0),
-        CornerRadius = new CornerRadius(4),
-        Width = 32, 
-        Height = 32, 
-        Margin = new Thickness(12, -4, -4, 0), 
-        HorizontalAlignment = HorizontalAlignment.Right, 
-        VerticalAlignment = VerticalAlignment.Top, 
-        Foreground = new SolidColorBrush(Colors.White) 
-    };
-    Grid.SetColumn(closeButton, 2);
-    closeButton.Click += (_, _) => { 
-        try { NotificationPanel.Children.Remove(card); }
-        catch
+        var infoBar = new InfoBar
         {
-            // ignored
-        }
-    };
-    
-    card.Children.Add(icon); 
-    card.Children.Add(contentPanel); 
-    card.Children.Add(closeButton);
-    
-    return card;
-}
+            Title = message.Title,
+            Message = message.Message,
+            Severity = GetInfoBarSeverity(message.Type),
+            IsOpen = true,
+            IsClosable = true,
+            Margin = new Thickness(0, 0, 0, 8),
+            Width = 360,
+            RenderTransform = new TranslateTransform { X = 380 },
+            Opacity = 0
+        };
 
-private string GetNotificationIcon(NotificationType type)
-{
-    return type switch
-    {
-        NotificationType.Success => "\uE930",
-        NotificationType.Warning => "\uE7BA",
-        NotificationType.Error => "\uEA39", 
-        _ => "\uE946"
-    };
-}
+        infoBar.Closing += (sender, args) =>
+        {
+            // 始终拦截系统默认的瞬间移除行为
+            args.Cancel = true;
 
-    private void AnimateNotification(FrameworkElement element, double from, double to, int duration)
+            // 状态校验：如果已经标记为正在关闭，则直接返回，丢弃重复请求
+            if (infoBar.Tag is string state && state == "Closing")
+            {
+                return;
+            }
+
+            // 标记当前状态为正在关闭
+            infoBar.Tag = "Closing";
+            
+            // 禁用控件的命中测试，彻底阻断用户后续的任何点击交互
+            infoBar.IsHitTestVisible = false;
+
+            DismissInfoBar(infoBar);
+        };
+
+        return infoBar;
+    }
+
+    private InfoBarSeverity GetInfoBarSeverity(NotificationType type)
     {
-        var animation = new DoubleAnimation { From = from, To = to, Duration = new Duration(TimeSpan.FromMilliseconds(duration)), EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut } };
-        Storyboard.SetTarget(animation, element.RenderTransform);
-        Storyboard.SetTargetProperty(animation, "X");
+        return type switch
+        {
+            NotificationType.Success => InfoBarSeverity.Success,
+            NotificationType.Warning => InfoBarSeverity.Warning,
+            NotificationType.Error => InfoBarSeverity.Error,
+            _ => InfoBarSeverity.Informational
+        };
+    }
+
+    private void PlayEntranceAnimation(FrameworkElement element)
+    {
+        var transformAnim = new DoubleAnimation
+        {
+            From = 380,
+            To = 0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(transformAnim, element.RenderTransform);
+        Storyboard.SetTargetProperty(transformAnim, "X");
+
+        var opacityAnim = new DoubleAnimation
+        {
+            From = 0,
+            To = 1,
+            Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(opacityAnim, element);
+        Storyboard.SetTargetProperty(opacityAnim, "Opacity");
+
         var storyboard = new Storyboard();
-        storyboard.Children.Add(animation);
+        storyboard.Children.Add(transformAnim);
+        storyboard.Children.Add(opacityAnim);
         storyboard.Begin();
     }
 
-    private void SetupAutoDismiss(FrameworkElement card, int duration)
+    private void DismissInfoBar(FrameworkElement element)
     {
-        var timer = dispatcherQueue.CreateTimer();
-        timer.Interval = TimeSpan.FromMilliseconds(duration);
-        timer.Tick += (_, _) => { try { NotificationPanel.Children.Remove(card); }
+        var transformAnim = new DoubleAnimation
+        {
+            From = 0,
+            To = 380,
+            Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseIn }
+        };
+        Storyboard.SetTarget(transformAnim, element.RenderTransform);
+        Storyboard.SetTargetProperty(transformAnim, "X");
+
+        var opacityAnim = new DoubleAnimation
+        {
+            From = 1,
+            To = 0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseIn }
+        };
+        Storyboard.SetTarget(opacityAnim, element);
+        Storyboard.SetTargetProperty(opacityAnim, "Opacity");
+
+        var storyboard = new Storyboard();
+        storyboard.Children.Add(transformAnim);
+        storyboard.Children.Add(opacityAnim);
+        
+        // 核心修改：在动画开始前检查是否为最后一条正在显示的通知
+        // 如果容器内所有子项的 Tag 都被标记为 "Closing"，说明这是最后一条或正处于一键清除流程
+        bool isLastNotification = NotificationPanel.Children
+            .OfType<FrameworkElement>()
+            .All(c => c.Tag is string state && state == "Closing");
+
+        if (isLastNotification)
+        {
+            PlayContainerExitAnimation();
+        }
+        
+        // 动画结束后仅移除控件，容器的隐藏由 PlayContainerExitAnimation 负责
+        storyboard.Completed += (_, _) =>
+        {
+            try
+            {
+                NotificationPanel.Children.Remove(element);
+            }
             catch
             {
                 // ignored
             }
+        };
+        
+        storyboard.Begin();
+    }
+    
+    private void ClearAllNotifications_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // 将现有子项复制到列表中遍历，避免集合修改引发异常
+            var currentNotifications = NotificationPanel.Children.ToList();
+            
+            foreach (var child in currentNotifications)
+            {
+                if (child is InfoBar infoBar)
+                {
+                    // 复用 CreateInfoBar 里的防呆判断
+                    if (infoBar.Tag is string state && state == "Closing") continue;
+                    
+                    infoBar.Tag = "Closing";
+                    infoBar.IsHitTestVisible = false;
+                    DismissInfoBar(infoBar);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"一键清除通知异常: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// 播放通知容器的放大进场动画
+    /// </summary>
+    private void PlayContainerEntranceAnimation()
+    {
+        // 确保容器有 ScaleTransform 并且 Opacity 为 0 开始动画
+        NotificationContainer.RenderTransformOrigin = new Point(1, 1); // 设置缩放中心为右下角
+        var scaleTransform = new ScaleTransform { ScaleX = 0.8, ScaleY = 0.8 };
+        NotificationContainer.RenderTransform = scaleTransform;
+        NotificationContainer.Opacity = 0;
 
-            timer.Stop(); };
+        // 缩放 X 动画
+        var scaleXAnim = new DoubleAnimation
+        {
+            From = 0.8,
+            To = 1.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(350)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(scaleXAnim, scaleTransform);
+        Storyboard.SetTargetProperty(scaleXAnim, "ScaleX");
+
+        // 缩放 Y 动画
+        var scaleYAnim = new DoubleAnimation
+        {
+            From = 0.8,
+            To = 1.0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(350)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(scaleYAnim, scaleTransform);
+        Storyboard.SetTargetProperty(scaleYAnim, "ScaleY");
+
+        // 透明度动画
+        var opacityAnim = new DoubleAnimation
+        {
+            From = 0,
+            To = 1,
+            Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(opacityAnim, NotificationContainer);
+        Storyboard.SetTargetProperty(opacityAnim, "Opacity");
+
+        var storyboard = new Storyboard();
+        storyboard.Children.Add(scaleXAnim);
+        storyboard.Children.Add(scaleYAnim);
+        storyboard.Children.Add(opacityAnim);
+        storyboard.Begin();
+    }
+
+    /// <summary>
+    /// 播放通知容器的缩小退场动画，动画结束后隐藏容器
+    /// </summary>
+    private void PlayContainerExitAnimation()
+    {
+        // 状态拦截：如果已经在退场中，则丢弃重复的动画请求
+        if (NotificationContainer.Tag is string state && state == "Closing") return;
+        
+        // 标记容器状态为正在关闭
+        NotificationContainer.Tag = "Closing";
+
+        if (!(NotificationContainer.RenderTransform is ScaleTransform scaleTransform))
+        {
+            scaleTransform = new ScaleTransform { ScaleX = 1.0, ScaleY = 1.0 };
+            NotificationContainer.RenderTransform = scaleTransform;
+        }
+
+        var scaleXAnim = new DoubleAnimation
+        {
+            From = 1.0,
+            To = 0.8,
+            Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseIn }
+        };
+        Storyboard.SetTarget(scaleXAnim, scaleTransform);
+        Storyboard.SetTargetProperty(scaleXAnim, "ScaleX");
+
+        var scaleYAnim = new DoubleAnimation
+        {
+            From = 1.0,
+            To = 0.8,
+            Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseIn }
+        };
+        Storyboard.SetTarget(scaleYAnim, scaleTransform);
+        Storyboard.SetTargetProperty(scaleYAnim, "ScaleY");
+
+        var opacityAnim = new DoubleAnimation
+        {
+            From = NotificationContainer.Opacity, // 从当前透明度开始，保证动画平滑
+            To = 0,
+            Duration = new Duration(TimeSpan.FromMilliseconds(300)),
+            EasingFunction = new CircleEase { EasingMode = EasingMode.EaseIn }
+        };
+        Storyboard.SetTarget(opacityAnim, NotificationContainer);
+        Storyboard.SetTargetProperty(opacityAnim, "Opacity");
+
+        var storyboard = new Storyboard();
+        storyboard.Children.Add(scaleXAnim);
+        storyboard.Children.Add(scaleYAnim);
+        storyboard.Children.Add(opacityAnim);
+        
+        storyboard.Completed += (_, _) =>
+        {
+            // 确保在退场动画完成时，如果状态未被中断（即没有新通知进入），才隐藏容器
+            if (NotificationContainer.Tag is string finalState && finalState == "Closing")
+            {
+                NotificationContainer.Visibility = Visibility.Collapsed;
+            }
+        };
+        
+        storyboard.Begin();
+    }
+
+    private void SetupAutoDismiss(FrameworkElement element, int duration)
+    {
+        var timer = dispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(duration);
+        timer.Tick += (_, _) => 
+        {
+            timer.Stop();
+
+            // 状态校验：防止手动关闭与自动关闭冲突
+            if (element.Tag is string state && state == "Closing")
+            {
+                return;
+            }
+
+            // 补全关闭状态标识与交互阻断
+            element.Tag = "Closing";
+            element.IsHitTestVisible = false;
+
+            DismissInfoBar(element);
+        };
         timer.Start();
     }
 
-    private Brush GetNotificationBrush(NotificationType type)
-    {
-        return type switch
-        {
-            NotificationType.Success => new SolidColorBrush(ColorHelper.FromArgb(255, 28, 175, 95)),
-            NotificationType.Warning => new SolidColorBrush(ColorHelper.FromArgb(255, 255, 185, 0)),
-            NotificationType.Error => new SolidColorBrush(ColorHelper.FromArgb(255, 232, 17, 35)),
-            _ => new SolidColorBrush(ColorHelper.FromArgb(255, 0, 103, 192))
-        };
-    }
-    
     #endregion
     
     #region Opacity & Visual Settings

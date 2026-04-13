@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using QRCoder;
 using MihoyoBBS; 
 using FufuLauncher.Services;
+using Microsoft.Web.WebView2.Core;
 
 namespace FufuLauncher.Views;
 
@@ -242,6 +243,22 @@ public sealed partial class LoginQrWindow : Window
         if (GameSelectionComboBox != null)
         {
             GameSelectionComboBox.Visibility = LoginMethodComboBox.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        if (QrCodeContainer != null && PassportWebView != null)
+        {
+            if (LoginMethodComboBox.SelectedIndex == 2)
+            {
+                QrCodeContainer.Visibility = Visibility.Collapsed;
+                PassportWebViewBorder.Visibility = Visibility.Visible;
+                await StartWebPassportLoginAsync();
+                return;
+            }
+            else
+            {
+                PassportWebViewBorder.Visibility = Visibility.Collapsed;
+                QrCodeContainer.Visibility = Visibility.Visible;
+            }
         }
 
         await RestartLoginFlowAsync();
@@ -1035,4 +1052,85 @@ public sealed partial class LoginQrWindow : Window
         });
     }
     #endregion
+    
+    #region 通行证网页登录
+
+    private async Task StartWebPassportLoginAsync()
+    {
+        if (_pollingCts != null)
+        {
+            _pollingCts.Cancel();
+        }
+
+        UpdateStatus("正在加载通行证登录页面...", true);
+
+        try
+        {
+            await PassportWebView.EnsureCoreWebView2Async();
+            
+            PassportWebView.CoreWebView2.CookieManager.DeleteAllCookies();
+            
+            PassportWebView.CoreWebView2.WebResourceResponseReceived -= CoreWebView2_WebResourceResponseReceived;
+            PassportWebView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
+            
+            PassportWebView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
+            PassportWebView.CoreWebView2.NavigationCompleted += CoreWebView2_NavigationCompleted;
+            
+            string url = "https://user.mihoyo.com/login-platform/index.html?app_id=dw9y09jqjpxc&theme=passport&token_type=4&game_biz=plat_cn&ux_mode=popup&iframe_level=1#/login";
+            PassportWebView.CoreWebView2.Navigate(url);
+
+            UpdateStatus("请在网页中完成登录验证", false, true);
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus($"加载通行证网页失败: {ex.Message}", false);
+        }
+    }
+    
+    private async void CoreWebView2_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
+    {
+        string script = @"
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.width = '100vw';
+        document.body.style.height = '100vh';
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+    ";
+        await PassportWebView.CoreWebView2.ExecuteScriptAsync(script);
+    }
+
+private async void CoreWebView2_WebResourceResponseReceived(object sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
+{
+    string uri = e.Request.Uri;
+    
+    if (uri.Contains("/ma-cn-passport/web/loginByPassword") || 
+        uri.Contains("/ma-cn-passport/web/loginByMobileCaptcha") || 
+        uri.Contains("/ma-cn-passport/web/queryQRLoginStatus"))
+    {
+        if (e.Response.StatusCode == 200)
+        {
+            var cookies = await PassportWebView.CoreWebView2.CookieManager.GetCookiesAsync("https://mihoyo.com");
+            var cookieDict = new Dictionary<string, string>();
+            
+            foreach (var cookie in cookies)
+            {
+                cookieDict[cookie.Name] = cookie.Value;
+            }
+            
+            if (cookieDict.ContainsKey("cookie_token") || cookieDict.ContainsKey("cookie_token_v2"))
+            {
+                PassportWebView.CoreWebView2.WebResourceResponseReceived -= CoreWebView2_WebResourceResponseReceived;
+                
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    UpdateStatus("凭证提取成功，正在保存", true);
+                    SaveCredentials(cookieDict);
+                });
+            }
+        }
+    }
+}
+
+#endregion
 }

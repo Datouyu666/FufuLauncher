@@ -34,6 +34,7 @@
             <ComboBox x:Name="LoginMethodComboBox" SelectedIndex="0" HorizontalAlignment="Center" SelectionChanged="LoginMethodComboBox_SelectionChanged">
                 <ComboBoxItem Content="米游社APP扫码登录"/>
                 <ComboBoxItem Content="通过游戏二维码登录"/>
+                <ComboBoxItem Content="网页通行证登录"/>
             </ComboBox>
 
             <ComboBox x:Name="GameSelectionComboBox" SelectedIndex="0" HorizontalAlignment="Center" Visibility="Collapsed" SelectionChanged="GameSelectionComboBox_SelectionChanged">
@@ -41,12 +42,17 @@
                 <ComboBoxItem Content="未定事件簿" Tag="2"/>
             </ComboBox>
 
-            <Border Width="220" Height="220" Background="White" CornerRadius="8" Padding="10" HorizontalAlignment="Center">
-                <Image x:Name="QrCodeImage" Stretch="Uniform" Opacity="0"/>
+            <StackPanel x:Name="QrCodeContainer" Spacing="20">
+                <Border Width="220" Height="220" Background="White" CornerRadius="8" Padding="10" HorizontalAlignment="Center">
+                    <Image x:Name="QrCodeImage" Stretch="Uniform" Opacity="0"/>
+                </Border>
+                <Button x:Name="RefreshButton" Content="刷新二维码" Click="RefreshButton_Click" HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <Border x:Name="PassportWebViewBorder" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinWidth="420" MinHeight="480" CornerRadius="12">
+                <WebView2 x:Name="PassportWebView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
             </Border>
 
-            <Button x:Name="RefreshButton" Content="刷新二维码" Click="RefreshButton_Click" HorizontalAlignment="Center"/>
-    
             <Button x:Name="ManualCookieButton" Content="手动输入Cookie" Click="ManualCookieButton_Click" HorizontalAlignment="Center"/>
         </StackPanel>
     </Grid>
