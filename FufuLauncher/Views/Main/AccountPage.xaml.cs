@@ -33,6 +33,11 @@ public sealed partial class AccountPage : Page
     {
         EntranceStoryboard.Begin();
     }
+    
+    private void AvatarPicture_Loaded(object sender, RoutedEventArgs e)
+    {
+        AvatarEntranceStoryboard.Begin();
+    }
 
     private void OnSwitchAccountClicked(object sender, RoutedEventArgs e)
     {

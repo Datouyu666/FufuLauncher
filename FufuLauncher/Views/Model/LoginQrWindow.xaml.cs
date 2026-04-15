@@ -1105,6 +1105,11 @@ public sealed partial class LoginQrWindow : Window
             
             PassportWebView.DefaultBackgroundColor = Microsoft.UI.Colors.Transparent;
             
+            PassportWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+            
+            PassportWebView.CoreWebView2.ContextMenuRequested -= CoreWebView2_ContextMenuRequested;
+            PassportWebView.CoreWebView2.ContextMenuRequested += CoreWebView2_ContextMenuRequested;
+            
             PassportWebView.CoreWebView2.Stop();
             
             PassportWebView.CoreWebView2.CookieManager.DeleteAllCookies();
@@ -1137,6 +1142,25 @@ public sealed partial class LoginQrWindow : Window
         catch (Exception ex)
         {
             UpdateStatus($"加载通行证网页失败: {ex.Message}", false);
+        }
+    }
+    
+    private void CoreWebView2_ContextMenuRequested(object sender, CoreWebView2ContextMenuRequestedEventArgs e)
+    {
+        var allowedItems = new HashSet<string> 
+        { 
+            "selectAll", 
+            "copy", 
+            "cut", 
+            "paste" 
+        };
+        
+        for (int i = e.MenuItems.Count - 1; i >= 0; i--)
+        {
+            if (!allowedItems.Contains(e.MenuItems[i].Name))
+            {
+                e.MenuItems.RemoveAt(i);
+            }
         }
     }
     

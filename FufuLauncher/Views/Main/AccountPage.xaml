@@ -56,6 +56,15 @@
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
         </Storyboard>
+        <Storyboard x:Name="AvatarEntranceStoryboard">
+            <DoubleAnimation Storyboard.TargetName="AvatarPicture"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:0.6" BeginTime="0:0:0.25">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
     </Page.Resources>
 
     <Grid x:Name="RootLayoutGrid" Opacity="0" RenderTransformOrigin="0.5,0.5">
@@ -73,18 +82,41 @@
                     </TransitionCollection>
                 </StackPanel.ChildrenTransitions>
 
-                <StackPanel Spacing="24" 
-                            Visibility="{x:Bind ViewModel.IsNotLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
-                            HorizontalAlignment="Center" Margin="0,48,0,0">
-                    <FontIcon Glyph="&#xE77B;" FontSize="64" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
-                    <TextBlock Text="尚未登录" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center"/>
-                    <Button Command="{x:Bind ViewModel.LoginCommand}" HorizontalAlignment="Center" Padding="32,12">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE710;" FontSize="16"/>
-                            <TextBlock Text="{x:Bind ViewModel.LoginButtonText, Mode=OneWay}"/>
+<StackPanel Spacing="24" 
+            Visibility="{x:Bind ViewModel.IsNotLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+            HorizontalAlignment="Center" Margin="0,48,0,0">
+    <FontIcon Glyph="&#xE77B;" FontSize="64" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+    <TextBlock Text="尚未登录" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center"/>
+    <Button Command="{x:Bind ViewModel.LoginCommand}" HorizontalAlignment="Center" Padding="32,12">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <FontIcon Glyph="&#xE710;" FontSize="16"/>
+            <TextBlock Text="{x:Bind ViewModel.LoginButtonText, Mode=OneWay}"/>
+        </StackPanel>
+    </Button>
+
+    <StackPanel Spacing="12" Margin="0,32,0,0" Visibility="{x:Bind ViewModel.HasSavedAccounts, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+        <TextBlock Text="或选择已保存的账户登录" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+        <ListView ItemsSource="{x:Bind ViewModel.SavedAccounts, Mode=OneWay}" SelectionMode="None" Width="280">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:AccountInfo">
+                    <Grid Margin="0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <PersonPicture ProfilePicture="{x:Bind AvatarUrl}" Width="32" Height="32" Margin="0,0,12,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Nickname}" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Text="{x:Bind GameUid}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
-                    </Button>
-                </StackPanel>
+                        <Button Grid.Column="2" Content="登录" FontSize="12" Click="OnSwitchAccountClicked"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </StackPanel>
+</StackPanel>
 
                 <StackPanel Spacing="24" Visibility="{x:Bind ViewModel.IsLoggedIn, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
 
@@ -113,9 +145,14 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <PersonPicture ProfilePicture="{x:Bind ViewModel.CurrentAccount.AvatarUrl, Mode=OneWay}" 
-                                                   DisplayName="{x:Bind ViewModel.CurrentAccount.Nickname, Mode=OneWay}"
-                                                   Width="84" Height="84"/>
+                                    <Ellipse x:Name="AvatarPicture" 
+                                             Width="84" Height="84" 
+                                             Opacity="0" 
+                                             Loaded="AvatarPicture_Loaded">
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{x:Bind ViewModel.CurrentAccount.AvatarUrl, Mode=OneWay}" Stretch="UniformToFill"/>
+                                        </Ellipse.Fill>
+                                    </Ellipse>
 
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
                                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">

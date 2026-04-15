@@ -32,6 +32,7 @@ public partial class AccountViewModel : ObservableRecipient
     [ObservableProperty] private bool _isLoadingUserInfo;
 
     [ObservableProperty] private ObservableCollection<AccountInfo> _savedAccounts = new();
+    public bool HasSavedAccounts => SavedAccounts.Count > 0;
 
     public IRelayCommand LoginCommand
     {
@@ -116,17 +117,28 @@ public partial class AccountViewModel : ObservableRecipient
             var displayConfig = await _userConfigService.LoadDisplayConfigAsync();
             if (!string.IsNullOrEmpty(displayConfig.GameUid))
             {
-                CurrentAccount = new AccountInfo
+                bool isSameAccount = CurrentAccount != null &&
+                                     CurrentAccount.GameUid == displayConfig.GameUid &&
+                                     CurrentAccount.AvatarUrl == displayConfig.AvatarUrl &&
+                                     CurrentAccount.Nickname == displayConfig.Nickname &&
+                                     CurrentAccount.Level == displayConfig.Level &&
+                                     CurrentAccount.Sign == displayConfig.Sign;
+
+                if (!isSameAccount)
                 {
-                    Nickname = displayConfig.Nickname,
-                    GameUid = displayConfig.GameUid,
-                    Server = displayConfig.Server,
-                    AvatarUrl = displayConfig.AvatarUrl,
-                    Level = displayConfig.Level,
-                    Sign = displayConfig.Sign,
-                    IpRegion = displayConfig.IpRegion,
-                    Gender = displayConfig.Gender
-                };
+                    CurrentAccount = new AccountInfo
+                    {
+                        Nickname = displayConfig.Nickname,
+                        GameUid = displayConfig.GameUid,
+                        Server = displayConfig.Server,
+                        AvatarUrl = displayConfig.AvatarUrl,
+                        Level = displayConfig.Level,
+                        Sign = displayConfig.Sign,
+                        IpRegion = displayConfig.IpRegion,
+                        Gender = displayConfig.Gender
+                    };
+                }
+                
                 LoginButtonText = "重新登录";
                 StatusMessage = "账户已登录";
             }
@@ -181,6 +193,8 @@ public partial class AccountViewModel : ObservableRecipient
             }
             SavedAccounts.Add(accountInfo);
         }
+        
+        OnPropertyChanged(nameof(HasSavedAccounts));
     }
 
     private async Task ArchiveCurrentAccountAsync()
@@ -271,12 +285,10 @@ public partial class AccountViewModel : ObservableRecipient
         try
         {
             StatusMessage = "正在打开登录窗口...";
-        
-            // 实例化新的二维码登录窗口
+            
             var loginWindow = new LoginQrWindow();
             loginWindow.Activate();
-
-            // 等待窗口关闭并获取登录结果
+            
             var tcs = new TaskCompletionSource<bool>();
             loginWindow.Closed += (s, e) => tcs.SetResult(loginWindow.DidLoginSucceed());
             var success = await tcs.Task;
