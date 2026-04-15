@@ -576,7 +576,6 @@ namespace FufuLauncher.ViewModels
 
         private async Task ExecuteCheckinAsync()
         {
-            Debug.WriteLine($"用户点击签到按钮");
             IsCheckinButtonEnabled = false;
             CheckinButtonText = "签到中...";
 
@@ -584,17 +583,38 @@ namespace FufuLauncher.ViewModels
             {
                 var (success, message) = await _checkinService.ExecuteCheckinAsync();
 
-                Debug.WriteLine($"签到结果: success={success}, message={message}");
-                CheckinStatusText = success ? "签到成功" : "签到失败";
+                int signDays = MihoyoBBS.GameCheckin.LastSignDays;
+                string rewardItem = MihoyoBBS.GameCheckin.LastRewardItem;
+
+                bool isActualSuccess = success;
+                
+                if (success && (string.IsNullOrEmpty(rewardItem) || rewardItem == "无/未知"))
+                {
+                    isActualSuccess = false;
+                }
+
+                CheckinStatusText = isActualSuccess ? "签到成功" : "签到失败";
                 CheckinSummary = message;
-                UpdateCheckinIconState(success ? "已签到" : "Fail");
+                UpdateCheckinIconState(isActualSuccess ? "已签到" : "Fail");
+
+                if (isActualSuccess)
+                {
+                    string formattedMsg = $"连续签到: {signDays}天 | 获得奖励: {rewardItem}";
+                    _notificationService.Show("签到成功", formattedMsg, NotificationType.Success, 3000);
+                }
+                else
+                {
+                    string errorMsg = string.IsNullOrEmpty(message) ? "未获取到签到奖励信息" : message;
+                    _notificationService.Show("签到失败", errorMsg, NotificationType.Error, 3000);
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"执行失败: {ex.Message}");
                 CheckinStatusText = "执行失败";
                 CheckinSummary = ex.Message;
                 UpdateCheckinIconState("Fail"); 
+                
+                _notificationService.Show("签到异常", ex.Message, NotificationType.Error, 3000);
             }
             finally
             {

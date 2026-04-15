@@ -84,7 +84,7 @@ public class HoyoverseCheckinService : IHoyoverseCheckinService
         Debug.WriteLine($" [签到] 签到结果:\n{result}");
 
         var isSuccess = !result.Contains("失败") && !result.Contains("异常");
-        var summary = string.Join(" | ", result.Split('\n').Take(2));
+        var summary = string.Join("", result.Split('\n').Take(2));
 
         Debug.WriteLine($" [签到] 执行完成: success={isSuccess}, summary={summary}");
 

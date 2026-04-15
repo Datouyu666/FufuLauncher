@@ -382,6 +382,8 @@ namespace MihoyoBBS
         protected readonly string PlayerName;
         protected HttpClient HttpClient;
         protected Dictionary<string, string> Headers;
+        public static int LastSignDays { get; set; } = 0;
+        public static string LastRewardItem { get; set; } = "无/未知";
 
         public List<AccountItem> AccountList
         {
@@ -691,7 +693,7 @@ namespace MihoyoBBS
                                 {
 
                                     returnData += $"\n{account.Nickname}签到成功";
-                                    returnData += $"\n今天获得的奖励是{Tools.GetItem(CheckinRewards[rewardIndex])}";
+                                    returnData += $"\n奖励是{Tools.GetItem(CheckinRewards[rewardIndex])}";
                                     signDays += 2;
                                 }
                                 else
@@ -708,7 +710,7 @@ namespace MihoyoBBS
                                 {
 
                                     returnData += $"\n{account.Nickname}今天已经签到过了";
-                                    returnData += $"\n今天获得的奖励是{Tools.GetItem(CheckinRewards[signDays])}";
+                                    returnData += $"\n奖励是{Tools.GetItem(CheckinRewards[signDays])}";
                                 }
                             }
                             else
@@ -732,10 +734,13 @@ namespace MihoyoBBS
                     }
                 }
 
-                returnData += $"\n{account.Nickname}已连续签到{signDays}天";
+                returnData += $"\n{account.Nickname}已签到{signDays}天";
+                LastSignDays = signDays;
+                
                 if (CheckinRewards != null && CheckinRewards.Count > signDays - 1)
                 {
-                    returnData += $"\n今天获得的奖励是{Tools.GetItem(CheckinRewards[signDays - 1])}";
+                    LastRewardItem = Tools.GetItem(CheckinRewards[signDays - 1]);
+                    returnData += $"\n奖励是{LastRewardItem}";
                 }
             }
 

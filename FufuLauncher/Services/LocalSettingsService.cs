@@ -156,6 +156,46 @@ namespace FufuLauncher.Services
                 ));
             }
         }
+        
+        public async Task RemoveSettingAsync(string key)
+        {
+            if (!_isInitialized)
+            {
+                await InitializeAsync();
+            }
+
+            if (_settings.ContainsKey(key))
+            {
+                _settings.Remove(key);
+                await RemoveSettingFromDbAsync(key);
+            }
+        }
+
+        private async Task RemoveSettingFromDbAsync(string key)
+        {
+            try
+            {
+                using var connection = new SqliteConnection($"Data Source={_dbPath}");
+                await connection.OpenAsync();
+        
+                var command = connection.CreateCommand();
+                command.CommandText = "DELETE FROM Settings WHERE [Key] = $key";
+                command.Parameters.AddWithValue("$key", key);
+        
+                await command.ExecuteNonQueryAsync();
+                Debug.WriteLine($"LocalSettingsService: 已从数据库删除 '{key}'");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"LocalSettingsService: 数据库删除失败 - {ex.Message}");
+                WeakReferenceMessenger.Default.Send(new NotificationMessage(
+                    "配置删除失败",
+                    $"无法从数据库删除设置: {ex.Message}",
+                    NotificationType.Error,
+                    4000
+                ));
+            }
+        }
 
         private async Task<Dictionary<string, string>> LoadSettingsFromDbAsync()
         {

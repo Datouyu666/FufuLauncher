@@ -811,6 +811,41 @@ public sealed partial class LoginQrWindow : Window
         return "";
     }
     
+    private async void ClearCacheButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ContentDialog
+        {
+            Title = "警告",
+            Content = "确定清除保存的历史登录数据吗？",
+            PrimaryButtonText = "确定",
+            CloseButtonText = "取消",
+            XamlRoot = Content?.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+    
+        if (result == ContentDialogResult.Primary)
+        {
+            try
+            {
+                UpdateStatus("正在清除数据库缓存...", true);
+
+                var localSettingsService = new LocalSettingsService();
+                await localSettingsService.RemoveSettingAsync("AccountConfig");
+
+                UpdateStatus("清理完成", false, false);
+                await Task.Delay(1000);
+                UpdateStatus("", false, true); 
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"清理失败: {ex.Message}", false, false);
+                await Task.Delay(2000);
+                UpdateStatus("", false, true);
+            }
+        }
+    }
+    
     private async void SaveCredentials(Dictionary<string, string> cookies)
     {
         var cookieList = new List<string>();
@@ -1068,15 +1103,33 @@ public sealed partial class LoginQrWindow : Window
         {
             await PassportWebView.EnsureCoreWebView2Async();
             
-            PassportWebView.CoreWebView2.CookieManager.DeleteAllCookies();
+            PassportWebView.DefaultBackgroundColor = Microsoft.UI.Colors.Transparent;
             
+            PassportWebView.CoreWebView2.Stop();
+            
+            PassportWebView.CoreWebView2.CookieManager.DeleteAllCookies();
+
+            try
+            {
+                await PassportWebView.CoreWebView2.Profile.ClearBrowsingDataAsync();
+            }
+            catch
+            {
+                // ignored
+            }
+
+            PassportWebView.CoreWebView2.Navigate("about:blank");
+
             PassportWebView.CoreWebView2.WebResourceResponseReceived -= CoreWebView2_WebResourceResponseReceived;
             PassportWebView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
-            
+        
             PassportWebView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
             PassportWebView.CoreWebView2.NavigationCompleted += CoreWebView2_NavigationCompleted;
             
-            string url = "https://user.mihoyo.com/login-platform/index.html?app_id=dw9y09jqjpxc&theme=passport&token_type=4&game_biz=plat_cn&ux_mode=popup&iframe_level=1#/login";
+            long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            string url = $"https://user.mihoyo.com/login-platform/index.html?app_id=dw9y09jqjpxc&theme=passport&token_type=4&game_biz=plat_cn&ux_mode=popup&iframe_level=1&t={timestamp}#/login";
+            
+            await Task.Delay(100);
             PassportWebView.CoreWebView2.Navigate(url);
 
             UpdateStatus("请在网页中完成登录验证", false, true);

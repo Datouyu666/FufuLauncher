@@ -12,10 +12,12 @@
   <component name="ChangeListManager">
     <list default="true" id="2e6bf6ba-f1a7-4d7b-8b76-8b03b5df7f33" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.FufuLauncher/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.FufuLauncher/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/ViewModels/ControlPanelModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/ViewModels/ControlPanelModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Main/MainPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Main/MainPage.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Main/PanelPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Main/PanelPage.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Main/PanelPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Main/PanelPage.xaml.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Models/MihoyoBBS.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Models/MihoyoBBS.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Services/HoyoverseCheckinService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Services/HoyoverseCheckinService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Services/LocalSettingsService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Services/LocalSettingsService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/ViewModels/MainViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/ViewModels/MainViewModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Model/LoginQrWindow.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Model/LoginQrWindow.xaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FufuLauncher/Views/Model/LoginQrWindow.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/FufuLauncher/Views/Model/LoginQrWindow.xaml.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,8 +39,10 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e703623710cc408eaac0f2c6feb0a00c81230/ef/39b547e2/IDictionaryMethods`2.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/ff6272365c704c4bb2ed9d119a49756b6f7620/9a/735ace2f/ContentDialog.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/1510a3e3fe7df8a2681434779ea73bc53713ed9c05689d72495b2b27c87/Path.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/ddd2e1cb86715125e6335e396ef8b489dcb4f23f331df3e2ba8fb969091bd/Regex.Match.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/Helpers/IniFile.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/Messages/SystemMessageNotification.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/FufuLauncher/Models/CheckinResult.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/Models/ScreenshotItem.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/Selectors/SettingTemplateSelector.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/FufuLauncher/Services/FpsOverlayService.cs" root0="FORCE_HIGHLIGHTING" />
@@ -82,7 +86,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "XThreadsFramesViewSplitterKey": "1.3398294",
+    "XThreadsFramesViewSplitterKey": "0.8135593",
     "git-widget-placeholder": "master",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -148,6 +152,20 @@
       <option name="PROJECT_TFM" value="" />
       <method v="2">
         <option name="Build" />
+      </method>
+    </configuration>
+    <configuration default="true" type="GODOT_DEBUG_RUN_CONFIGURATION" factoryName="Start and Debug">
+      <option name="EXE_PATH" value="" />
+      <option name="PROGRAM_PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="PASS_PARENT_ENVS" value="1" />
+      <option name="USE_EXTERNAL_CONSOLE" value="0" />
+      <option name="ENV_FILE_PATHS" value="" />
+      <option name="REDIRECT_INPUT_PATH" value="" />
+      <option name="PTY_MODE" value="Auto" />
+      <option name="MIXED_MODE_DEBUG" value="0" />
+      <method v="2">
+        <option name="Build Solution" enabled="true" />
       </method>
     </configuration>
     <configuration name="FufuLauncher" type="LaunchSettings" factoryName=".NET Launch Settings Profile">
@@ -266,15 +284,9 @@
       <workItem from="1776000687418" duration="1050000" />
       <workItem from="1776011891066" duration="641000" />
       <workItem from="1776054700270" duration="12706000" />
-      <workItem from="1776095062396" duration="836000" />
-    </task>
-    <task id="LOCAL-00004" summary="更新版本号，预发布1.0.9.0">
-      <option name="closed" value="true" />
-      <created>1771884031780</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1771884031780</updated>
+      <workItem from="1776095062396" duration="1032000" />
+      <workItem from="1776195052222" duration="2735000" />
+      <workItem from="1776228139459" duration="2845000" />
     </task>
     <task id="LOCAL-00005" summary="1.0.9.0">
       <option name="closed" value="true" />
@@ -660,7 +672,15 @@
       <option name="project" value="LOCAL" />
       <updated>1776093730284</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="修复部分问题">
+      <option name="closed" value="true" />
+      <created>1776096096662</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1776096096662</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -681,7 +701,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
-    <MESSAGE value="增加回退" />
     <MESSAGE value="修复注入" />
     <MESSAGE value="更新部分功能" />
     <MESSAGE value="增加提示" />
@@ -706,7 +725,8 @@
     <MESSAGE value="修复 #120 和 #118 的版本检测问题以及除草提议" />
     <MESSAGE value="修复部分因权限导致的问题" />
     <MESSAGE value="修复部分问题，增加网页登录" />
-    <option name="LAST_COMMIT_MESSAGE" value="修复部分问题，增加网页登录" />
+    <MESSAGE value="修复部分问题" />
+    <option name="LAST_COMMIT_MESSAGE" value="修复部分问题" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
